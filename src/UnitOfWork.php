@@ -71,6 +71,9 @@ final class UnitOfWork
         $managed->remove($entity);
     }
 
+    /**
+     * @throws OptimisticLockFailed
+     */
     public function flush(): void
     {
         $this->ensureNotClosed();
