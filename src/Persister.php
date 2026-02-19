@@ -23,6 +23,7 @@ interface Persister
     /**
      * @param TTransaction $transaction
      * @param TEntity $entity
+     * @throws DuplicateEntity|OptimisticLockFailed
      */
     public function insert(object $transaction, object $entity): void;
 

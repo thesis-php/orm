@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
+use Thesis\ORM\DuplicateEntity;
 use Thesis\ORM\OptimisticLockFailed;
 use Thesis\ORM\Persister;
 
@@ -72,7 +73,7 @@ abstract class ManagedEntity
 
     /**
      * @param TTransaction $transaction
-     * @throws OptimisticLockFailed
+     * @throws DuplicateEntity|OptimisticLockFailed
      */
     abstract public function flush(object $transaction): void;
 }

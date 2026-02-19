@@ -24,7 +24,7 @@ $postgres = new PostgresConnectionPool(
 );
 $em = new EntityManager(static fn() => new Amp($postgres->beginTransaction()));
 
-$id = Uuid::uuid7();
+$id = Uuid::fromString('019c773d-da73-705c-9e9e-d1d1b92e192a');
 $password1 = bin2hex(random_bytes(16));
 $password2 = bin2hex(random_bytes(16));
 

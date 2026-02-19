@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Authentication\Identity;
 
 use Amp\Postgres\PostgresLink;
+use Amp\Postgres\PostgresQueryError;
 use Authentication\Identity;
 use Ramsey\Uuid\UuidInterface as Uuid;
+use Thesis\ORM\DuplicateEntity;
 use Thesis\ORM\EntityVersion;
 use Thesis\ORM\OptimisticLockFailed;
 use Thesis\ORM\Persister as ORMPersister;
@@ -45,16 +47,24 @@ final readonly class Persister implements ORMPersister
 
     public function insert(object $transaction, object $entity): void
     {
-        $transaction->execute(
-            <<<'SQL'
-                insert into identity (id, password_hash)
-                values (?, ?)
-                SQL,
-            [
-                $entity->id->toString(),
-                $entity->passwordHash,
-            ],
-        );
+        try {
+            $transaction->execute(
+                <<<'SQL'
+                    insert into identity (id, password_hash)
+                    values (?, ?)
+                    SQL,
+                [
+                    $entity->id->toString(),
+                    $entity->passwordHash,
+                ],
+            );
+        } catch (PostgresQueryError $error) {
+            if (str_contains(strtolower($error->getMessage()), 'duplicate key value violates unique constraint')) {
+                throw new DuplicateEntity(previous: $error);
+            }
+
+            throw $error;
+        }
     }
 
     public function update(object $transaction, object $entity, int $version, object $snapshot): void

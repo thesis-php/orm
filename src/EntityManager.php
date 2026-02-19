@@ -22,7 +22,7 @@ final readonly class EntityManager
      * @template T
      * @param callable(UnitOfWork<TTransaction>): T $function
      * @return T
-     * @throws OptimisticLockFailed
+     * @throws DuplicateEntity|OptimisticLockFailed
      */
     public function inTransaction(callable $function): mixed
     {

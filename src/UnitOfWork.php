@@ -72,7 +72,7 @@ final class UnitOfWork
     }
 
     /**
-     * @throws OptimisticLockFailed
+     * @throws DuplicateEntity|OptimisticLockFailed
      */
     public function flush(): void
     {
