@@ -10,4 +10,4 @@ composer require thesis/orm
 
 Documentation is coming soon.
 
-In the meantime, see the [Authentication module](examples/Authentication) example for a usage overview.
+In the meantime, see the [authentication module](examples/authentication) example for a usage overview.

@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
+namespace Authentication;
+
 use Amp\Postgres\PostgresConfig;
 use Amp\Postgres\PostgresConnectionPool;
-use Authentication\ChangePasswordHandler;
 use Authentication\Identity\Repository;
-use Authentication\RegisterHandler;
-use Authentication\Transaction;
 use Ramsey\Uuid\Uuid;
 use Thesis\ORM\EntityManager;
 use Thesis\ORM\UnitOfWork;
@@ -16,7 +15,7 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 
 $postgres = new PostgresConnectionPool(
     new PostgresConfig(
-        host: 'localhost',
+        host: 'postgres',
         user: 'thesis',
         password: 'thesis',
         database: 'thesis',

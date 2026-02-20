@@ -34,7 +34,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Authentication\\": "examples/Authentication/",
+            "Authentication\\": "examples/authentication/",
             "Thesis\\ORM\\": "tests/"
         }
     },
