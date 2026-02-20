@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Thesis\ORM;
 
+use Thesis\ORM\Exception\DuplicateEntity;
+use Thesis\ORM\Exception\EntityNotManaged;
+
 /**
  * @api
  *
@@ -39,6 +42,7 @@ final readonly class Repository
 
     /**
      * @param TEntity $entity
+     * @throws DuplicateEntity
      */
     public function add(object $entity): void
     {
@@ -47,6 +51,7 @@ final readonly class Repository
 
     /**
      * @param TEntity $entity
+     * @throws EntityNotManaged
      */
     public function remove(object $entity): void
     {

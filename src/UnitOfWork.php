@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Thesis\ORM;
 
+use Thesis\ORM\Exception\ConcurrentModification;
+use Thesis\ORM\Exception\DuplicateEntity;
+use Thesis\ORM\Exception\EntityNotManaged;
+use Thesis\ORM\Exception\UnitOfWorkClosed;
 use Thesis\ORM\Internal\ManagedEntity;
 
 /**
@@ -49,6 +53,7 @@ final class UnitOfWork
      * @param non-empty-string $key
      * @param Persister<TTransaction, TEntity, TId> $persister
      * @param TEntity $entity
+     * @throws DuplicateEntity
      */
     public function add(string $key, Persister $persister, object $entity): void
     {
@@ -63,6 +68,7 @@ final class UnitOfWork
      * @param non-empty-string $key
      * @param Persister<TTransaction, TEntity, TId> $persister
      * @param TEntity $entity
+     * @throws EntityNotManaged
      */
     public function remove(string $key, Persister $persister, object $entity): void
     {
@@ -72,7 +78,7 @@ final class UnitOfWork
     }
 
     /**
-     * @throws DuplicateEntity|OptimisticLockFailed
+     * @throws DuplicateEntity|ConcurrentModification
      */
     public function flush(): void
     {
@@ -91,7 +97,7 @@ final class UnitOfWork
     private function ensureNotClosed(): void
     {
         if ($this->closed) {
-            throw new \LogicException();
+            throw new UnitOfWorkClosed();
         }
     }
 }

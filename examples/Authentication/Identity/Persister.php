@@ -8,9 +8,8 @@ use Amp\Postgres\PostgresLink;
 use Amp\Postgres\PostgresQueryError;
 use Authentication\Identity;
 use Ramsey\Uuid\UuidInterface as Uuid;
-use Thesis\ORM\DuplicateEntity;
-use Thesis\ORM\EntityVersion;
-use Thesis\ORM\OptimisticLockFailed;
+use Thesis\ORM\Exception\ConcurrentModification;
+use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Persister as ORMPersister;
 
 /**
@@ -18,9 +17,9 @@ use Thesis\ORM\Persister as ORMPersister;
  */
 final readonly class Persister implements ORMPersister
 {
-    public function select(object $transaction, mixed $id): ?EntityVersion
+    public function select(object $transaction, mixed $id): ?object
     {
-        /** @var ?array{password_hash: string, version: positive-int} */
+        /** @var ?array{password_hash: non-empty-string, version: positive-int} */
         $row = $transaction
             ->execute(
                 <<<'SQL'
@@ -36,11 +35,9 @@ final readonly class Persister implements ORMPersister
             return null;
         }
 
-        return new EntityVersion(
-            entity: new Identity(
-                id: $id,
-                passwordHash: $row['password_hash'],
-            ),
+        return new Identity(
+            id: $id,
+            passwordHash: $row['password_hash'],
             version: $row['version'],
         );
     }
@@ -67,7 +64,7 @@ final readonly class Persister implements ORMPersister
         }
     }
 
-    public function update(object $transaction, object $entity, int $version, object $snapshot): void
+    public function update(object $transaction, object $entity, object $snapshot): void
     {
         if ($entity->passwordHash === $snapshot->passwordHash) {
             return;
@@ -83,16 +80,16 @@ final readonly class Persister implements ORMPersister
             [
                 $entity->passwordHash,
                 $entity->id->toString(),
-                $version,
+                $entity->version,
             ],
         );
 
         if ($result->getRowCount() !== 1) {
-            throw new OptimisticLockFailed();
+            throw new ConcurrentModification();
         }
     }
 
-    public function delete(object $transaction, object $entity, int $version): void
+    public function delete(object $transaction, object $entity): void
     {
         $result = $transaction->execute(
             <<<'SQL'
@@ -101,12 +98,12 @@ final readonly class Persister implements ORMPersister
                 SQL,
             [
                 $entity->id->toString(),
-                $version,
+                $entity->version,
             ],
         );
 
         if ($result->getRowCount() !== 1) {
-            throw new OptimisticLockFailed();
+            throw new ConcurrentModification();
         }
     }
 }

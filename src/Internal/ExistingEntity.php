@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
-use Thesis\ORM\EntityVersion;
+use Thesis\ORM\Exception\DuplicateEntity;
+use Thesis\ORM\Exception\EntityNotManaged;
 use Thesis\ORM\Persister;
 
 /**
@@ -22,37 +23,25 @@ final class ExistingEntity extends ManagedEntity
     /**
      * @var TEntity
      */
-    public readonly object $entity;
-
-    /**
-     * @var positive-int
-     */
-    private readonly int $version;
-
-    /**
-     * @var TEntity
-     */
     private readonly object $snapshot;
 
     /**
      * @param Persister<TTransaction, TEntity, TId> $persister
-     * @param EntityVersion<TEntity> $entityVersion
+     * @param TEntity $entity
      */
     protected function __construct(
         Persister $persister,
-        EntityVersion $entityVersion,
+        public readonly object $entity,
     ) {
         parent::__construct($persister);
 
-        $this->entity = $entityVersion->entity;
-        $this->version = $entityVersion->version;
-        $this->snapshot = clone $entityVersion->entity;
+        $this->snapshot = clone $entity;
     }
 
     public function add(object $entity): void
     {
         if ($entity !== $this->entity) {
-            throw new \LogicException();
+            throw new DuplicateEntity();
         }
 
         $this->remove = false;
@@ -61,7 +50,7 @@ final class ExistingEntity extends ManagedEntity
     public function remove(object $entity): void
     {
         if ($entity !== $this->entity) {
-            throw new \LogicException();
+            throw new EntityNotManaged();
         }
 
         $this->remove = true;
@@ -70,9 +59,9 @@ final class ExistingEntity extends ManagedEntity
     public function flush(object $transaction): void
     {
         if ($this->remove) {
-            $this->persister->delete($transaction, $this->entity, $this->version);
+            $this->persister->delete($transaction, $this->entity);
         } else {
-            $this->persister->update($transaction, $this->entity, $this->version, $this->snapshot);
+            $this->persister->update($transaction, $this->entity, $this->snapshot);
         }
     }
 }

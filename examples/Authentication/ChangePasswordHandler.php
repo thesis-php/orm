@@ -13,6 +13,9 @@ final readonly class ChangePasswordHandler
         private Repository $repository,
     ) {}
 
+    /**
+     * @throws NotRegistered|InvalidPassword
+     */
     public function __invoke(
         Uuid $id,
         #[\SensitiveParameter]

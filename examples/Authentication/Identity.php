@@ -8,19 +8,30 @@ use Ramsey\Uuid\UuidInterface as Uuid;
 
 final class Identity
 {
+    private const int DEFAULT_VERSION = 1;
+
     public static function register(Uuid $id, #[\SensitiveParameter] string $password): self
     {
         return new self(
             id: $id,
             passwordHash: password_hash($password, PASSWORD_DEFAULT),
+            version: self::DEFAULT_VERSION,
         );
     }
 
+    /**
+     * @param non-empty-string $passwordHash
+     * @param positive-int $version
+     */
     public function __construct(
         public readonly Uuid $id,
         public private(set) string $passwordHash,
+        public readonly int $version,
     ) {}
 
+    /**
+     * @throws InvalidPassword
+     */
     public function authenticate(#[\SensitiveParameter] string $password): void
     {
         if (!password_verify($password, $this->passwordHash)) {
@@ -28,6 +39,9 @@ final class Identity
         }
     }
 
+    /**
+     * @throws InvalidPassword
+     */
     public function changePassword(
         #[\SensitiveParameter]
         string $oldPassword,

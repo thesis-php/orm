@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
-use Thesis\ORM\DuplicateEntity;
-use Thesis\ORM\OptimisticLockFailed;
+use Thesis\ORM\Exception\ConcurrentModification;
+use Thesis\ORM\Exception\DuplicateEntity;
+use Thesis\ORM\Exception\EntityNotManaged;
 use Thesis\ORM\Persister;
 
 /**
@@ -63,17 +64,19 @@ abstract class ManagedEntity
 
     /**
      * @param TEntity $entity
+     * @throws DuplicateEntity
      */
     abstract public function add(object $entity): void;
 
     /**
      * @param TEntity $entity
+     * @throws EntityNotManaged
      */
     abstract public function remove(object $entity): void;
 
     /**
      * @param TTransaction $transaction
-     * @throws DuplicateEntity|OptimisticLockFailed
+     * @throws DuplicateEntity|ConcurrentModification
      */
     abstract public function flush(object $transaction): void;
 }

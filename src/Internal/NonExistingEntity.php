@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
+use Thesis\ORM\Exception\DuplicateEntity;
+use Thesis\ORM\Exception\EntityNotManaged;
+
 /**
  * @internal
  *
@@ -25,7 +28,7 @@ final class NonExistingEntity extends ManagedEntity
         }
 
         if ($this->entity !== $entity) {
-            throw new \LogicException();
+            throw new DuplicateEntity();
         }
     }
 
@@ -36,7 +39,7 @@ final class NonExistingEntity extends ManagedEntity
         }
 
         if ($this->entity !== $entity) {
-            throw new \LogicException();
+            throw new EntityNotManaged();
         }
 
         $this->entity = null;

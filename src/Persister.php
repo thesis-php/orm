@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Thesis\ORM;
 
+use Thesis\ORM\Exception\ConcurrentModification;
+use Thesis\ORM\Exception\DuplicateEntity;
+
 /**
  * @api
  *
@@ -16,31 +19,29 @@ interface Persister
     /**
      * @param TTransaction $transaction
      * @param TId $id
-     * @return ?EntityVersion<TEntity>
+     * @return ?TEntity
      */
-    public function select(object $transaction, mixed $id): ?EntityVersion;
+    public function select(object $transaction, mixed $id): ?object;
 
     /**
      * @param TTransaction $transaction
      * @param TEntity $entity
-     * @throws DuplicateEntity|OptimisticLockFailed
+     * @throws DuplicateEntity
      */
     public function insert(object $transaction, object $entity): void;
 
     /**
      * @param TTransaction $transaction
      * @param TEntity $entity
-     * @param positive-int $version
      * @param TEntity $snapshot
-     * @throws OptimisticLockFailed
+     * @throws ConcurrentModification
      */
-    public function update(object $transaction, object $entity, int $version, object $snapshot): void;
+    public function update(object $transaction, object $entity, object $snapshot): void;
 
     /**
      * @param TTransaction $transaction
      * @param TEntity $entity
-     * @param positive-int $version
-     * @throws OptimisticLockFailed
+     * @throws ConcurrentModification
      */
-    public function delete(object $transaction, object $entity, int $version): void;
+    public function delete(object $transaction, object $entity): void;
 }
