@@ -24,6 +24,7 @@ final readonly class ChangePasswordHandler
         string $newPassword,
     ): void {
         $identity = $this->repository->find($id) ?? throw new NotRegistered();
+
         $identity->changePassword($oldPassword, $newPassword);
     }
 }

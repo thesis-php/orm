@@ -36,19 +36,19 @@ final class UnitOfWork
     /**
      * @template TEntity of object
      * @template TCriteria
-     * @param Persister<TTransaction, TEntity, TCriteria> $persister
      * @param class-string<TEntity> $class
+     * @param Persister<TTransaction, TEntity, TCriteria> $persister
      * @param \Closure(TEntity): ?non-empty-string $getId
      * @return Repository<TTransaction, TEntity, TCriteria>
      */
-    public function repository(Persister $persister, string $class, \Closure $getId): Repository
+    public function repository(string $class, Persister $persister, \Closure $getId): Repository
     {
         $this->ensureNotClosed();
 
         return new Repository(
             unitOfWork: $this,
-            persister: $persister,
             class: $class,
+            persister: $persister,
             getId: $getId,
         );
     }

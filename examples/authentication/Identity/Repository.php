@@ -20,11 +20,13 @@ final readonly class Repository
      * @param ORM\UnitOfWork<PostgresLink> $unitOfWork
      * @param ORM\Persister<PostgresLink, Identity, ?UuidInterface> $persister
      */
-    public function __construct(ORM\UnitOfWork $unitOfWork, ORM\Persister $persister = new Persister())
-    {
+    public function __construct(
+        ORM\UnitOfWork $unitOfWork,
+        ORM\Persister $persister = new Persister(),
+    ) {
         $this->repository = $unitOfWork->repository(
-            persister: $persister,
             class: Identity::class,
+            persister: $persister,
             getId: static fn(Identity $identity) => $identity->id->toString(),
         );
     }

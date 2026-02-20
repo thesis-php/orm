@@ -18,14 +18,14 @@ final readonly class Repository
 {
     /**
      * @param UnitOfWork<TTransaction> $unitOfWork
-     * @param Persister<TTransaction, TEntity, TCriteria> $persister
      * @param class-string<TEntity> $class
+     * @param Persister<TTransaction, TEntity, TCriteria> $persister
      * @param \Closure(TEntity): ?non-empty-string $getId
      */
     public function __construct(
         private UnitOfWork $unitOfWork,
-        private Persister $persister,
         private string $class,
+        private Persister $persister,
         private \Closure $getId,
     ) {}
 
