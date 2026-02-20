@@ -26,6 +26,7 @@ final readonly class EntityManager
     public function inTransaction(callable $function): mixed
     {
         $transaction = ($this->beginTransaction)();
+
         $unitOfWork = new UnitOfWork($transaction->inner);
 
         try {
@@ -37,6 +38,8 @@ final readonly class EntityManager
 
             return $result;
         } catch (\Throwable $exception) {
+            $unitOfWork->close();
+
             $transaction->rollback();
 
             throw $exception;

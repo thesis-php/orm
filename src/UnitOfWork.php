@@ -142,9 +142,14 @@ final class UnitOfWork
                 $entity->flush($this->transaction);
             }
         } finally {
-            $this->managed = [];
-            $this->closed = true;
+            $this->close();
         }
+    }
+
+    public function close(): void
+    {
+        $this->managed = [];
+        $this->closed = true;
     }
 
     private function ensureNotClosed(): void
