@@ -13,10 +13,9 @@ use Thesis\ORM\Persister;
  *
  * @template TTransaction of object
  * @template TEntity of object
- * @template TId of int|string|array|object
- * @extends ManagedEntity<TTransaction, TEntity, TId>
+ * @implements ManagedEntity<TTransaction, TEntity>
  */
-final class ExistingEntity extends ManagedEntity
+final class ExistingEntity implements ManagedEntity
 {
     private bool $remove = false;
 
@@ -26,15 +25,13 @@ final class ExistingEntity extends ManagedEntity
     private readonly object $snapshot;
 
     /**
-     * @param Persister<TTransaction, TEntity, TId> $persister
+     * @param Persister<TTransaction, TEntity, *> $persister
      * @param TEntity $entity
      */
-    protected function __construct(
-        Persister $persister,
+    public function __construct(
+        private readonly Persister $persister,
         public readonly object $entity,
     ) {
-        parent::__construct($persister);
-
         $this->snapshot = clone $entity;
     }
 

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Authentication;
 
-use Ramsey\Uuid\UuidInterface as Uuid;
+use Ramsey\Uuid\UuidInterface;
 
 final class Identity
 {
     private const int DEFAULT_VERSION = 1;
 
-    public static function register(Uuid $id, #[\SensitiveParameter] string $password): self
+    public static function register(UuidInterface $id, #[\SensitiveParameter] string $password): self
     {
         return new self(
             id: $id,
@@ -24,7 +24,7 @@ final class Identity
      * @param positive-int $version
      */
     public function __construct(
-        public readonly Uuid $id,
+        public readonly UuidInterface $id,
         public private(set) string $passwordHash,
         public readonly int $version,
     ) {}

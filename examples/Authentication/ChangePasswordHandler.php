@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Authentication;
 
 use Authentication\Identity\Repository;
-use Ramsey\Uuid\UuidInterface as Uuid;
+use Ramsey\Uuid\UuidInterface;
 
 final readonly class ChangePasswordHandler
 {
@@ -17,7 +17,7 @@ final readonly class ChangePasswordHandler
      * @throws NotRegistered|InvalidPassword
      */
     public function __invoke(
-        Uuid $id,
+        UuidInterface $id,
         #[\SensitiveParameter]
         string $oldPassword,
         #[\SensitiveParameter]

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Authentication;
 
 use Authentication\Identity\Repository;
-use Ramsey\Uuid\UuidInterface as Uuid;
+use Ramsey\Uuid\UuidInterface;
 
 final readonly class RegisterHandler
 {
@@ -13,7 +13,7 @@ final readonly class RegisterHandler
         private Repository $repository,
     ) {}
 
-    public function __invoke(Uuid $id, #[\SensitiveParameter] string $password): void
+    public function __invoke(UuidInterface $id, #[\SensitiveParameter] string $password): void
     {
         $identity = Identity::register(id: $id, password: $password);
 

@@ -6,38 +6,49 @@ namespace Authentication\Identity;
 
 use Amp\Postgres\PostgresLink;
 use Authentication\Identity;
-use Ramsey\Uuid\UuidInterface as Uuid;
-use Thesis\ORM\Repository as ORMRepository;
-use Thesis\ORM\UnitOfWork;
+use Ramsey\Uuid\UuidInterface;
+use Thesis\ORM;
 
 final readonly class Repository
 {
     /**
-     * @var ORMRepository<PostgresLink, Identity, Uuid>
+     * @var ORM\Repository<PostgresLink, Identity, ?UuidInterface>
      */
-    private ORMRepository $repository;
+    private ORM\Repository $repository;
 
     /**
-     * @param UnitOfWork<PostgresLink> $unitOfWork
+     * @param ORM\UnitOfWork<PostgresLink> $unitOfWork
+     * @param ORM\Persister<PostgresLink, Identity, ?UuidInterface> $persister
      */
-    public function __construct(UnitOfWork $unitOfWork)
+    public function __construct(ORM\UnitOfWork $unitOfWork, ORM\Persister $persister = new Persister())
     {
-        $this->repository = new ORMRepository(
-            unitOfWork: $unitOfWork,
-            persister: new Persister(),
+        $this->repository = $unitOfWork->repository(
+            persister: $persister,
             class: Identity::class,
-            getId: static fn(Identity $identity) => $identity->id,
-            stringifyId: static fn(Uuid $id) => $id->toString(),
+            getId: static fn(Identity $identity) => $identity->id->toString(),
         );
     }
 
-    public function find(Uuid $id): ?Identity
+    public function find(UuidInterface $id): ?Identity
     {
-        return $this->repository->find($id);
+        return $this->repository->findBy($id)[0] ?? null;
+    }
+
+    /**
+     * @return list<Identity>
+     */
+    public function findAll(): array
+    {
+        return $this->repository->findBy(null);
     }
 
     public function add(Identity $identity): void
     {
         $this->repository->add($identity);
+    }
+
+    public function remove(Identity $identity): void
+    {
+        $this->repository->remove($identity);
     }
 }

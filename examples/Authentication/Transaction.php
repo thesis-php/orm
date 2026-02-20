@@ -2,18 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Thesis\ORM\Transaction;
+namespace Authentication;
 
 use Amp\Sql\SqlTransaction;
-use Thesis\ORM\Transaction;
+use Thesis\ORM;
 
 /**
- * @api
- *
  * @template TTransaction of SqlTransaction
- * @implements Transaction<TTransaction>
+ * @implements ORM\Transaction<TTransaction>
  */
-final readonly class Amp implements Transaction
+final readonly class Transaction implements ORM\Transaction
 {
     /**
      * @param TTransaction $inner

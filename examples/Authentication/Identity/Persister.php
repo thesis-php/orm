@@ -7,39 +7,43 @@ namespace Authentication\Identity;
 use Amp\Postgres\PostgresLink;
 use Amp\Postgres\PostgresQueryError;
 use Authentication\Identity;
-use Ramsey\Uuid\UuidInterface as Uuid;
-use Thesis\ORM\Exception\ConcurrentModification;
-use Thesis\ORM\Exception\DuplicateEntity;
-use Thesis\ORM\Persister as ORMPersister;
+use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidInterface;
+use Thesis\ORM;
+use Thesis\ORM\Exception;
 
 /**
- * @implements ORMPersister<PostgresLink, Identity, Uuid>
+ * @implements ORM\Persister<PostgresLink, Identity, ?UuidInterface>
  */
-final readonly class Persister implements ORMPersister
+final readonly class Persister implements ORM\Persister
 {
-    public function select(object $transaction, mixed $id): ?object
+    public function select(object $transaction, mixed $criteria): iterable
     {
-        /** @var ?array{password_hash: non-empty-string, version: positive-int} */
-        $row = $transaction
-            ->execute(
+        $rows = $criteria === null
+            ? $transaction->query(
                 <<<'SQL'
-                    select password_hash, version
+                    select id, password_hash, version
+                    from identity
+                    order by id
+                    SQL,
+            )
+            : $transaction->execute(
+                <<<'SQL'
+                    select id, password_hash, version
                     from identity
                     where id = ?
                     SQL,
-                [$id->toString()],
-            )
-            ->fetchRow();
+                [$criteria->toString()],
+            );
 
-        if ($row === null) {
-            return null;
+        foreach ($rows as $row) {
+            /** @var array{id: non-empty-string, password_hash: non-empty-string, version: positive-int} $row */
+            yield new Identity(
+                id: Uuid::fromString($row['id']),
+                passwordHash: $row['password_hash'],
+                version: $row['version'],
+            );
         }
-
-        return new Identity(
-            id: $id,
-            passwordHash: $row['password_hash'],
-            version: $row['version'],
-        );
     }
 
     public function insert(object $transaction, object $entity): void
@@ -57,7 +61,7 @@ final readonly class Persister implements ORMPersister
             );
         } catch (PostgresQueryError $error) {
             if (str_contains(strtolower($error->getMessage()), 'duplicate key value violates unique constraint')) {
-                throw new DuplicateEntity(previous: $error);
+                throw new Exception\DuplicateEntity(previous: $error);
             }
 
             throw $error;
@@ -85,7 +89,7 @@ final readonly class Persister implements ORMPersister
         );
 
         if ($result->getRowCount() !== 1) {
-            throw new ConcurrentModification();
+            throw new Exception\ConcurrentModification();
         }
     }
 
@@ -103,7 +107,7 @@ final readonly class Persister implements ORMPersister
         );
 
         if ($result->getRowCount() !== 1) {
-            throw new ConcurrentModification();
+            throw new Exception\ConcurrentModification();
         }
     }
 }

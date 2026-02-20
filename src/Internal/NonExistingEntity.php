@@ -6,18 +6,25 @@ namespace Thesis\ORM\Internal;
 
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
+use Thesis\ORM\Persister;
 
 /**
  * @internal
  *
  * @template TTransaction of object
  * @template TEntity of object
- * @template TId of int|string|array|object
- * @extends ManagedEntity<TTransaction, TEntity, TId>
+ * @implements ManagedEntity<TTransaction, TEntity>
  */
-final class NonExistingEntity extends ManagedEntity
+final class NonExistingEntity implements ManagedEntity
 {
     public private(set) ?object $entity = null;
+
+    /**
+     * @param Persister<TTransaction, TEntity, *> $persister
+     */
+    public function __construct(
+        private readonly Persister $persister,
+    ) {}
 
     public function add(object $entity): void
     {

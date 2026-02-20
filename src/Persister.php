@@ -12,16 +12,16 @@ use Thesis\ORM\Exception\DuplicateEntity;
  *
  * @template-contravariant TTransaction of object
  * @template TEntity of object
- * @template TId of int|string|array|object
+ * @template-contravariant TCriteria
  */
 interface Persister
 {
     /**
      * @param TTransaction $transaction
-     * @param TId $id
-     * @return ?TEntity
+     * @param TCriteria $criteria
+     * @return iterable<TEntity>
      */
-    public function select(object $transaction, mixed $id): ?object;
+    public function select(object $transaction, mixed $criteria): iterable;
 
     /**
      * @param TTransaction $transaction
