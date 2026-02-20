@@ -12,11 +12,17 @@ namespace Thesis\ORM;
 final readonly class EntityManager
 {
     /**
+     * @var \Closure(): Transaction<TTransaction>
+     */
+    private \Closure $beginTransaction;
+
+    /**
      * @param callable(): Transaction<TTransaction> $beginTransaction
      */
-    public function __construct(
-        private mixed $beginTransaction,
-    ) {}
+    public function __construct(callable $beginTransaction)
+    {
+        $this->beginTransaction = $beginTransaction(...);
+    }
 
     /**
      * @template T

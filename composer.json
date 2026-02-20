@@ -30,11 +30,15 @@
     "autoload": {
         "psr-4": {
             "Thesis\\ORM\\": "src/"
-        }
+        },
+        "files": [
+            "src/Transaction/delegate.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
             "Authentication\\": "examples/authentication/",
+            "Testing\\": "examples/testing/",
             "Thesis\\ORM\\": "tests/"
         }
     },

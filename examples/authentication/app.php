@@ -9,6 +9,7 @@ use Amp\Postgres\PostgresConnectionPool;
 use Authentication\Identity\Repository;
 use Ramsey\Uuid\Uuid;
 use Thesis\ORM\EntityManager;
+use Thesis\ORM\Transaction;
 use Thesis\ORM\UnitOfWork;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
@@ -21,7 +22,7 @@ $postgres = new PostgresConnectionPool(
         database: 'thesis',
     ),
 );
-$em = new EntityManager(static fn() => new Transaction($postgres->beginTransaction()));
+$em = new EntityManager(static fn() => Transaction\delegate($postgres->beginTransaction()));
 
 $id = Uuid::uuid7();
 $password1 = bin2hex(random_bytes(16));
