@@ -22,6 +22,7 @@
     },
     "require-dev": {
         "amphp/postgres": "^2.1",
+        "amphp/sql": "^2.0",
         "phpunit/phpunit": "^12.4",
         "ramsey/uuid": "^4.9",
         "symfony/var-dumper": "^8.0"
