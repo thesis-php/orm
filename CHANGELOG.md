@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `UnitOfWork` is now always closed.
 - **BC Break:** `Thesis\ORM\Transaction` moved to `Thesis\Transaction` in a separate [thesis/transaction](https://github.com/thesis-php/transaction) package.
 - **BC Break:** Flip order of Flip `$class` and `$persister` parameters in `Repository::__construct()` and `UnitOfWork::repository()`.
+
+### Fixed
+
+- `UnitOfWork` is now always closed.
