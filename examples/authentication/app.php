@@ -22,22 +22,28 @@ $postgres = new PostgresConnectionPool(
         database: 'thesis',
     ),
 );
-$em = new EntityManager(static fn() => Transaction\delegate($postgres->beginTransaction()));
+$entityManager = new EntityManager(static fn() => Transaction\delegate($postgres->beginTransaction()));
 
 $id = Uuid::uuid7();
 $password1 = bin2hex(random_bytes(16));
 $password2 = bin2hex(random_bytes(16));
 
-$em->inTransaction(static function (UnitOfWork $unitOfWork) use ($id, $password1): void {
-    $handler = new RegisterHandler(new Repository($unitOfWork));
-    $handler($id, $password1);
+$entityManager->inTransaction(static function (UnitOfWork $unitOfWork) use ($id, $password1): void {
+    $repository = new Repository($unitOfWork);
+
+    $identity = Identity::register(id: $id, password: $password1);
+
+    $repository->add($identity);
 });
 
-$em->inTransaction(static function (UnitOfWork $unitOfWork) use ($id, $password1, $password2): void {
-    $handler = new ChangePasswordHandler(new Repository($unitOfWork));
-    $handler($id, $password1, $password2);
+$entityManager->inTransaction(static function (UnitOfWork $unitOfWork) use ($id, $password1, $password2): void {
+    $repository = new Repository($unitOfWork);
+
+    $identity = $repository->find($id) ?? throw new \Exception('Not registered');
+
+    $identity->changePassword($password1, $password2);
 });
 
-$em->inTransaction(static function (UnitOfWork $unitOfWork): void {
+$entityManager->inTransaction(static function (UnitOfWork $unitOfWork): void {
     dump(new Repository($unitOfWork)->findAll());
 });

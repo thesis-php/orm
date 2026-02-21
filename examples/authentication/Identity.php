@@ -29,19 +29,13 @@ final class Identity
         public readonly int $version,
     ) {}
 
-    /**
-     * @throws InvalidPassword
-     */
     public function authenticate(#[\SensitiveParameter] string $password): void
     {
         if (!password_verify($password, $this->passwordHash)) {
-            throw new InvalidPassword();
+            throw new \Exception('Invalid password');
         }
     }
 
-    /**
-     * @throws InvalidPassword
-     */
     public function changePassword(
         #[\SensitiveParameter]
         string $oldPassword,
