@@ -9,8 +9,8 @@ use Amp\Postgres\PostgresConnectionPool;
 use Authentication\Identity\Repository;
 use Ramsey\Uuid\Uuid;
 use Thesis\ORM\EntityManager;
-use Thesis\ORM\Transaction;
 use Thesis\ORM\UnitOfWork;
+use Thesis\Transaction;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 

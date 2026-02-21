@@ -12,8 +12,8 @@ use Ramsey\Uuid\UuidInterface;
 use Testing\Article\Repository;
 use Thesis\ORM\EntityManager;
 use Thesis\ORM\Persister\InMemory;
-use Thesis\ORM\Transaction\Fake;
 use Thesis\ORM\UnitOfWork;
+use Thesis\Transaction\Fake;
 use function PHPUnit\Framework\assertCount;
 use function PHPUnit\Framework\assertNotNull;
 

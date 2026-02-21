@@ -18,7 +18,8 @@
         }
     ],
     "require": {
-        "php": "^8.4"
+        "php": "^8.4",
+        "thesis/transaction": "^0.1.0"
     },
     "require-dev": {
         "amphp/postgres": "^2.1",
@@ -30,10 +31,7 @@
     "autoload": {
         "psr-4": {
             "Thesis\\ORM\\": "src/"
-        },
-        "files": [
-            "src/Transaction/delegate.php"
-        ]
+        }
     },
     "autoload-dev": {
         "psr-4": {
