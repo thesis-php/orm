@@ -8,9 +8,10 @@ use Thesis\ORM\Exception\ConcurrentModification;
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
 use Thesis\ORM\Exception\UnitOfWorkClosed;
-use Thesis\ORM\Internal\ExistingEntity;
+use Thesis\ORM\Internal\Existing;
 use Thesis\ORM\Internal\ManagedEntity;
-use Thesis\ORM\Internal\NonExistingEntity;
+use Thesis\ORM\Internal\ManagedPersister;
+use Thesis\ORM\Internal\NonExisting;
 
 /**
  * @api
@@ -22,9 +23,14 @@ final class UnitOfWork
     private bool $closed = false;
 
     /**
-     * @var array<non-empty-string, ManagedEntity<TTransaction, *>>
+     * @var array<non-empty-string, ManagedEntity<*>>
      */
-    private array $managed = [];
+    private array $identityMap = [];
+
+    /**
+     * @var array<int, ManagedPersister<TTransaction, *>>
+     */
+    private array $persisters = [];
 
     /**
      * @param TTransaction $transaction
@@ -56,46 +62,37 @@ final class UnitOfWork
     /**
      * @template TEntity of object
      * @template TCriteria
-     * @param callable(TEntity): non-empty-string $key
+     * @param callable(TEntity): non-empty-string $keyFactory
      * @param Persister<TTransaction, TEntity, TCriteria> $persister
      * @param TCriteria $criteria
      * @return list<TEntity>
      */
-    public function findBy(callable $key, Persister $persister, mixed $criteria): array
+    public function findBy(callable $keyFactory, Persister $persister, mixed $criteria): array
     {
         $this->ensureNotClosed();
 
         return array_map(
-            fn(object $entity) => $this->manage($key($entity), $persister, $entity),
-            iterator_to_array($persister->select($this->transaction, $criteria), preserve_keys: false),
+            function (object $entity) use ($keyFactory, $persister): object {
+                $key = $keyFactory($entity);
+
+                /** @var ?ManagedEntity<TEntity> */
+                $managedEntity = $this->identityMap[$key] ?? null;
+
+                if ($managedEntity !== null) {
+                    return $managedEntity->resolveFound($entity);
+                }
+
+                $managedEntity = new ManagedEntity(new Existing($entity));
+                $this->identityMap[$key] = $managedEntity;
+                $this->managePersister($persister, $managedEntity);
+
+                return $entity;
+            },
+            iterator_to_array(
+                $persister->select($this->transaction, $criteria),
+                preserve_keys: false,
+            ),
         );
-    }
-
-    /**
-     * @template TEntity of object
-     * @param non-empty-string $key
-     * @param Persister<TTransaction, TEntity, *> $persister
-     * @param TEntity $entity
-     * @return TEntity
-     */
-    private function manage(string $key, Persister $persister, object $entity): object
-    {
-        /** @var ?ManagedEntity<TTransaction, TEntity> */
-        $managed = $this->managed[$key] ?? null;
-
-        if ($managed instanceof ExistingEntity) {
-            return $managed->entity;
-        }
-
-        if ($managed instanceof NonExistingEntity && $managed->entity !== null) {
-            $this->managed[$key] = new ExistingEntity($persister, $managed->entity);
-
-            return $managed->entity;
-        }
-
-        $this->managed[$key] = new ExistingEntity($persister, $entity);
-
-        return $entity;
     }
 
     /**
@@ -109,9 +106,18 @@ final class UnitOfWork
     {
         $this->ensureNotClosed();
 
-        /** @var ManagedEntity<TTransaction, TEntity> */
-        $managed = $this->managed[$key] ??= new NonExistingEntity($persister);
-        $managed->add($entity);
+        /** @var ?ManagedEntity<TEntity> */
+        $managedEntity = $this->identityMap[$key] ?? null;
+
+        if ($managedEntity !== null) {
+            $managedEntity->add($entity);
+
+            return;
+        }
+
+        $managedEntity = new ManagedEntity(new NonExisting($entity));
+        $this->identityMap[$key] = $managedEntity;
+        $this->managePersister($persister, $managedEntity);
     }
 
     /**
@@ -125,9 +131,31 @@ final class UnitOfWork
     {
         $this->ensureNotClosed();
 
-        /** @var ManagedEntity<TTransaction, TEntity> */
-        $managed = $this->managed[$key] ??= new NonExistingEntity($persister);
-        $managed->remove($entity);
+        /** @var ?ManagedEntity<TEntity> */
+        $managedEntity = $this->identityMap[$key] ?? null;
+
+        if ($managedEntity !== null) {
+            $managedEntity->remove($entity);
+
+            return;
+        }
+
+        /** @var ManagedEntity<TEntity> */
+        $managedEntity = new ManagedEntity(new NonExisting());
+        $this->identityMap[$key] = $managedEntity;
+        $this->managePersister($persister, $managedEntity);
+    }
+
+    /**
+     * @template TEntity of object
+     * @param Persister<TTransaction, TEntity, *> $persister
+     * @param ManagedEntity<TEntity> $entity
+     */
+    private function managePersister(Persister $persister, ManagedEntity $entity): void
+    {
+        /** @var ManagedPersister<TTransaction, TEntity> */
+        $managedPersister = $this->persisters[spl_object_id($persister)] ??= new ManagedPersister($persister);
+        $managedPersister->addEntity($entity);
     }
 
     /**
@@ -138,8 +166,8 @@ final class UnitOfWork
         $this->ensureNotClosed();
 
         try {
-            foreach ($this->managed as $entity) {
-                $entity->flush($this->transaction);
+            foreach ($this->persisters as $persister) {
+                $persister->persist($this->transaction);
             }
         } finally {
             $this->close();
@@ -148,7 +176,8 @@ final class UnitOfWork
 
     public function close(): void
     {
-        $this->managed = [];
+        $this->identityMap = [];
+        $this->persisters = [];
         $this->closed = true;
     }
 

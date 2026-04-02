@@ -18,7 +18,7 @@ final class UnitOfWorkTest extends TestCase
         $unitOfWork = new UnitOfWork(new \stdClass());
 
         $found = $unitOfWork->findBy(
-            key: static fn(Article $article) => (string) $article->id,
+            keyFactory: static fn(Article $article) => (string) $article->id,
             persister: $persister,
             criteria: null,
         );
@@ -37,7 +37,7 @@ final class UnitOfWorkTest extends TestCase
         $unitOfWork = new UnitOfWork(new \stdClass());
 
         $found = $unitOfWork->findBy(
-            key: static fn(Article $article) => (string) $article->id,
+            keyFactory: static fn(Article $article) => (string) $article->id,
             persister: $persister,
             criteria: 1,
         );

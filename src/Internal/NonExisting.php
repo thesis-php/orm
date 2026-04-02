@@ -4,28 +4,28 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
+use Thesis\ORM\Changes;
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
-use Thesis\ORM\Persister;
 
 /**
  * @internal
  *
- * @template TTransaction of object
  * @template TEntity of object
- * @implements ManagedEntity<TTransaction, TEntity>
  */
-final class NonExistingEntity implements ManagedEntity
+final class NonExisting
 {
-    public private(set) ?object $entity = null;
-
     /**
-     * @param Persister<TTransaction, TEntity, *> $persister
+     * @param ?TEntity $entity
      */
     public function __construct(
-        private readonly Persister $persister,
+        public private(set) ?object $entity = null,
     ) {}
 
+    /**
+     * @param TEntity $entity
+     * @throws DuplicateEntity
+     */
     public function add(object $entity): void
     {
         if ($this->entity === null) {
@@ -39,6 +39,10 @@ final class NonExistingEntity implements ManagedEntity
         }
     }
 
+    /**
+     * @param TEntity $entity
+     * @throws EntityNotManaged
+     */
     public function remove(object $entity): void
     {
         if ($this->entity === null) {
@@ -52,10 +56,11 @@ final class NonExistingEntity implements ManagedEntity
         $this->entity = null;
     }
 
-    public function flush(object $transaction): void
+    /**
+     * @return Changes<TEntity>
+     */
+    public function collectChanges(): Changes
     {
-        if ($this->entity !== null) {
-            $this->persister->insert($transaction, $this->entity);
-        }
+        return new Changes(inserts: $this->entity === null ? [] : [$this->entity]);
     }
 }

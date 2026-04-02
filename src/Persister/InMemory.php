@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Persister;
 
+use Thesis\ORM\Changes;
 use Thesis\ORM\Persister;
 
 /**
@@ -16,6 +17,18 @@ use Thesis\ORM\Persister;
 final class InMemory implements Persister
 {
     /**
+     * @var list<TEntity>
+     */
+    public array $entities {
+        get => iterator_to_array($this->storage, preserve_keys: false);
+    }
+
+    /**
+     * @var \SplObjectStorage<TEntity, null>
+     */
+    private readonly \SplObjectStorage $storage;
+
+    /**
      * @var ?\Closure(TEntity, TCriteria): bool
      */
     private readonly ?\Closure $filter;
@@ -24,11 +37,6 @@ final class InMemory implements Persister
      * @var ?\Closure(TEntity, TEntity): (-1|0|1)
      */
     private readonly ?\Closure $sorter;
-
-    /**
-     * @var list<TEntity>
-     */
-    public array $entities;
 
     /**
      * @param ?callable(TEntity, TCriteria): bool $filter
@@ -41,9 +49,14 @@ final class InMemory implements Persister
         // default null prevents TEntity = never inference from an empty list
         ?array $entities = null,
     ) {
+        $this->storage = new \SplObjectStorage();
+
         $this->filter = $filter === null ? null : $filter(...);
         $this->sorter = $sorter === null ? null : $sorter(...);
-        $this->entities = $entities ?? [];
+
+        foreach ($entities ?? [] as $entity) {
+            $this->storage->offsetSet($entity);
+        }
     }
 
     public function select(object $transaction, mixed $criteria): iterable
@@ -51,11 +64,9 @@ final class InMemory implements Persister
         $entities = $this->entities;
 
         if ($this->filter !== null) {
-            $entities = array_values(
-                array_filter(
-                    $this->entities,
-                    fn(object $entity) => ($this->filter)($entity, $criteria),
-                ),
+            $entities = array_filter(
+                $entities,
+                fn(object $entity) => ($this->filter)($entity, $criteria),
             );
         }
 
@@ -63,23 +74,17 @@ final class InMemory implements Persister
             usort($entities, $this->sorter);
         }
 
-        return $entities;
+        return array_values($entities);
     }
 
-    public function insert(object $transaction, object $entity): void
+    public function persist(object $transaction, Changes $changes): void
     {
-        $this->entities[] = $entity;
-    }
+        foreach ($changes->inserts as $insert) {
+            $this->storage->offsetSet($insert);
+        }
 
-    public function update(object $transaction, object $entity, object $snapshot): void {}
-
-    public function delete(object $transaction, object $entity): void
-    {
-        $this->entities = array_values(
-            array_filter(
-                $this->entities,
-                static fn(object $persisted) => $persisted !== $entity,
-            ),
-        );
+        foreach ($changes->deletes as $delete) {
+            $this->storage->offsetUnset($delete);
+        }
     }
 }
