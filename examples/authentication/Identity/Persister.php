@@ -46,68 +46,99 @@ final readonly class Persister implements ORM\Persister
         }
     }
 
-    public function insert(object $transaction, object $entity): void
+    public function persist(object $transaction, ORM\Changes $changes): void
     {
-        try {
-            $transaction->execute(
-                <<<'SQL'
-                    insert into identity (id, password_hash)
-                    values (?, ?)
-                    SQL,
-                [
-                    $entity->id->toString(),
-                    $entity->passwordHash,
-                ],
-            );
-        } catch (PostgresQueryError $error) {
-            if (str_contains(strtolower($error->getMessage()), 'duplicate key value violates unique constraint')) {
-                throw new Exception\DuplicateEntity(previous: $error);
-            }
-
-            throw $error;
-        }
+        $this->insert($transaction, $changes->inserts);
+        $this->update($transaction, $changes->updates);
+        $this->delete($transaction, $changes->deletes);
     }
 
-    public function update(object $transaction, object $entity, object $snapshot): void
+    /**
+     * @param list<Identity> $entities
+     */
+    private function insert(PostgresLink $transaction, array $entities): void
     {
-        if ($entity->passwordHash === $snapshot->passwordHash) {
+        if ($entities === []) {
             return;
         }
 
-        $result = $transaction->execute(
+        $statement = $transaction->prepare(
+            <<<'SQL'
+                insert into identity (id, password_hash)
+                values (?, ?)
+                SQL,
+        );
+
+        foreach ($entities as $entity) {
+            try {
+                $statement->execute([$entity->id->toString(), $entity->passwordHash]);
+            } catch (PostgresQueryError $error) {
+                if (str_contains(strtolower($error->getMessage()), 'duplicate key value violates unique constraint')) {
+                    throw new Exception\DuplicateEntity(previous: $error);
+                }
+
+                throw $error;
+            }
+        }
+    }
+
+    /**
+     * @param list<ORM\Update<Identity>> $updates
+     */
+    private function update(PostgresLink $transaction, array $updates): void
+    {
+        if ($updates === []) {
+            return;
+        }
+
+        $statement = $transaction->prepare(
             <<<'SQL'
                 update identity
                 set password_hash = ?,
                     version = version + 1
                 where id = ? and version = ?
                 SQL,
-            [
-                $entity->passwordHash,
-                $entity->id->toString(),
-                $entity->version,
-            ],
         );
 
-        if ($result->getRowCount() !== 1) {
-            throw new Exception\ConcurrentModification();
+        foreach ($updates as $update) {
+            if ($update->entity->passwordHash === $update->snapshot->passwordHash) {
+                continue;
+            }
+
+            $result = $statement->execute([
+                $update->entity->passwordHash,
+                $update->entity->id->toString(),
+                $update->entity->version,
+            ]);
+
+            if ($result->getRowCount() !== 1) {
+                throw new Exception\ConcurrentModification();
+            }
         }
     }
 
-    public function delete(object $transaction, object $entity): void
+    /**
+     * @param list<Identity> $entities
+     */
+    private function delete(PostgresLink $transaction, array $entities): void
     {
-        $result = $transaction->execute(
+        if ($entities === []) {
+            return;
+        }
+
+        $statement = $transaction->prepare(
             <<<'SQL'
                 delete from identity
                 where id = ? and version = ?
                 SQL,
-            [
-                $entity->id->toString(),
-                $entity->version,
-            ],
         );
 
-        if ($result->getRowCount() !== 1) {
-            throw new Exception\ConcurrentModification();
+        foreach ($entities as $entity) {
+            $result = $statement->execute([$entity->id->toString(), $entity->version]);
+
+            if ($result->getRowCount() !== 1) {
+                throw new Exception\ConcurrentModification();
+            }
         }
     }
 }

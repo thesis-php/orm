@@ -25,23 +25,9 @@ interface Persister
 
     /**
      * @param TTransaction $transaction
-     * @param TEntity $entity
+     * @param Changes<TEntity> $changes
      * @throws DuplicateEntity
-     */
-    public function insert(object $transaction, object $entity): void;
-
-    /**
-     * @param TTransaction $transaction
-     * @param TEntity $entity
-     * @param TEntity $snapshot
      * @throws ConcurrentModification
      */
-    public function update(object $transaction, object $entity, object $snapshot): void;
-
-    /**
-     * @param TTransaction $transaction
-     * @param TEntity $entity
-     * @throws ConcurrentModification
-     */
-    public function delete(object $transaction, object $entity): void;
+    public function persist(object $transaction, Changes $changes): void;
 }

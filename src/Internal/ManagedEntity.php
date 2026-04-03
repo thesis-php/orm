@@ -4,38 +4,66 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
-use Thesis\ORM\Exception\ConcurrentModification;
+use Thesis\ORM\Changes;
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
 
 /**
  * @internal
  *
- * @template TTransaction of object
  * @template TEntity of object
  */
-interface ManagedEntity
+final class ManagedEntity
 {
     /**
-     * @var ?TEntity
+     * @param Existing<TEntity>|NonExisting<TEntity> $state
      */
-    public ?object $entity { get; }
+    public function __construct(
+        private Existing|NonExisting $state,
+    ) {}
+
+    /**
+     * @param TEntity $entity
+     * @return TEntity
+     */
+    public function resolveFound(object $entity): object
+    {
+        if ($this->state instanceof Existing) {
+            return $this->state->entity;
+        }
+
+        if ($this->state->entity !== null) {
+            $entity = $this->state->entity;
+            $this->state = new Existing($entity);
+
+            return $entity;
+        }
+
+        $this->state = new Existing($entity);
+
+        return $entity;
+    }
 
     /**
      * @param TEntity $entity
      * @throws DuplicateEntity
      */
-    public function add(object $entity): void;
+    public function add(object $entity): void
+    {
+        $this->state->add($entity);
+    }
 
     /**
      * @param TEntity $entity
      * @throws EntityNotManaged
      */
-    public function remove(object $entity): void;
+    public function remove(object $entity): void
+    {
+        $this->state->remove($entity);
+    }
 
     /**
-     * @param TTransaction $transaction
-     * @throws DuplicateEntity|ConcurrentModification
+     * @var Changes<TEntity>
      */
-    public function flush(object $transaction): void;
+    public Changes $changes { get => $this->state->collectChanges(); }
 }

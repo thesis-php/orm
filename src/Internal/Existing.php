@@ -4,18 +4,17 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
+use Thesis\ORM\Changes;
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
-use Thesis\ORM\Persister;
+use Thesis\ORM\Update;
 
 /**
  * @internal
  *
- * @template TTransaction of object
  * @template TEntity of object
- * @implements ManagedEntity<TTransaction, TEntity>
  */
-final class ExistingEntity implements ManagedEntity
+final class Existing
 {
     private bool $remove = false;
 
@@ -25,16 +24,18 @@ final class ExistingEntity implements ManagedEntity
     private readonly object $snapshot;
 
     /**
-     * @param Persister<TTransaction, TEntity, *> $persister
      * @param TEntity $entity
      */
     public function __construct(
-        private readonly Persister $persister,
         public readonly object $entity,
     ) {
         $this->snapshot = clone $entity;
     }
 
+    /**
+     * @param TEntity $entity
+     * @throws DuplicateEntity
+     */
     public function add(object $entity): void
     {
         if ($entity !== $this->entity) {
@@ -44,6 +45,10 @@ final class ExistingEntity implements ManagedEntity
         $this->remove = false;
     }
 
+    /**
+     * @param TEntity $entity
+     * @throws EntityNotManaged
+     */
     public function remove(object $entity): void
     {
         if ($entity !== $this->entity) {
@@ -53,12 +58,15 @@ final class ExistingEntity implements ManagedEntity
         $this->remove = true;
     }
 
-    public function flush(object $transaction): void
+    /**
+     * @return Changes<TEntity>
+     */
+    public function collectChanges(): Changes
     {
         if ($this->remove) {
-            $this->persister->delete($transaction, $this->entity);
-        } else {
-            $this->persister->update($transaction, $this->entity, $this->snapshot);
+            return new Changes(deletes: [$this->entity]);
         }
+
+        return new Changes(updates: [new Update($this->entity, $this->snapshot)]);
     }
 }
