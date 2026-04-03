@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Testing\Article;
 
 use Amp\Postgres\PostgresLink;
+use Amp\Postgres\PostgresTransaction;
 use Ramsey\Uuid\UuidInterface;
 use Testing\Article;
 use Thesis\ORM;
@@ -12,19 +13,19 @@ use Thesis\ORM;
 final readonly class Repository
 {
     /**
-     * @var ORM\Repository<PostgresLink, Article, UuidInterface>
+     * @var ORM\Repository<PostgresLink, PostgresTransaction, Article, UuidInterface>
      */
     private ORM\Repository $repository;
 
     /**
-     * @param ORM\UnitOfWork<PostgresLink> $unitOfWork
-     * @param ORM\Persister<PostgresLink, Article, UuidInterface> $persister
+     * @param ORM\Session<PostgresLink, PostgresTransaction> $session
+     * @param ORM\Persister<PostgresLink, PostgresTransaction, Article, UuidInterface> $persister
      */
     public function __construct(
-        ORM\UnitOfWork $unitOfWork,
+        ORM\Session $session,
         ORM\Persister $persister,
     ) {
-        $this->repository = $unitOfWork->repository(
+        $this->repository = $session->repository(
             class: Article::class,
             persister: $persister,
             getId: static fn(Article $article) => $article->id->toString(),

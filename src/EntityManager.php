@@ -4,53 +4,36 @@ declare(strict_types=1);
 
 namespace Thesis\ORM;
 
-use Thesis\Transaction;
-
 /**
  * @api
  *
+ * @template TConnection of object
  * @template TTransaction of object
  */
 final readonly class EntityManager
 {
     /**
-     * @var \Closure(): Transaction<TTransaction>
+     * @param Connection<TConnection, TTransaction> $connection
      */
-    private \Closure $beginTransaction;
-
-    /**
-     * @param callable(): Transaction<TTransaction> $beginTransaction
-     */
-    public function __construct(callable $beginTransaction)
-    {
-        $this->beginTransaction = $beginTransaction(...);
-    }
+    public function __construct(
+        private Connection $connection,
+    ) {}
 
     /**
      * @template T
-     * @param callable(UnitOfWork<TTransaction>): T $function
+     * @param callable(Session<TConnection, TTransaction>): T $function
      * @return T
      */
-    public function inTransaction(callable $function): mixed
+    public function session(callable $function, IsolationLevel $isolationLevel = IsolationLevel::ReadCommitted): mixed
     {
-        $transaction = ($this->beginTransaction)();
+        $session = new Session($this->connection, $isolationLevel);
 
-        $unitOfWork = new UnitOfWork($transaction->inner);
+        $result = $function($session);
 
-        try {
-            $result = $function($unitOfWork);
-
-            $unitOfWork->flush();
-
-            $transaction->commit();
-
-            return $result;
-        } catch (\Throwable $exception) {
-            $unitOfWork->close();
-
-            $transaction->rollback();
-
-            throw $exception;
+        if (!$session->isClosed) {
+            $session->commit();
         }
+
+        return $result;
     }
 }

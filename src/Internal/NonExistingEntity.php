@@ -12,20 +12,12 @@ use Thesis\ORM\Exception\EntityNotManaged;
  * @internal
  *
  * @template TEntity of object
+ * @implements ManagedEntity<TEntity>
  */
-final class NonExisting
+final class NonExistingEntity implements ManagedEntity
 {
-    /**
-     * @param ?TEntity $entity
-     */
-    public function __construct(
-        public private(set) ?object $entity = null,
-    ) {}
+    public private(set) ?object $entity = null;
 
-    /**
-     * @param TEntity $entity
-     * @throws DuplicateEntity
-     */
     public function add(object $entity): void
     {
         if ($this->entity === null) {
@@ -39,10 +31,6 @@ final class NonExisting
         }
     }
 
-    /**
-     * @param TEntity $entity
-     * @throws EntityNotManaged
-     */
     public function remove(object $entity): void
     {
         if ($this->entity === null) {

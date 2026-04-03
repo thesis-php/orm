@@ -19,11 +19,11 @@
     ],
     "require": {
         "php": "^8.4",
-        "thesis/transaction": "^0.1.0"
+        "amphp/postgres": "^2.2",
+        "amphp/sql": "^2.1"
     },
     "require-dev": {
-        "amphp/postgres": "^2.1",
-        "amphp/sql": "^2.0",
+        "amphp/amp": "^3.1",
         "phpunit/phpunit": "^12.4",
         "ramsey/uuid": "^4.9",
         "symfony/var-dumper": "^8.0"

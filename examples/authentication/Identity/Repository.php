@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Authentication\Identity;
 
 use Amp\Postgres\PostgresLink;
+use Amp\Postgres\PostgresTransaction;
 use Authentication\Identity;
 use Ramsey\Uuid\UuidInterface;
 use Thesis\ORM;
@@ -12,19 +13,19 @@ use Thesis\ORM;
 final readonly class Repository
 {
     /**
-     * @var ORM\Repository<PostgresLink, Identity, ?UuidInterface>
+     * @var ORM\Repository<PostgresLink, PostgresTransaction, Identity, ?UuidInterface>
      */
     private ORM\Repository $repository;
 
     /**
-     * @param ORM\UnitOfWork<PostgresLink> $unitOfWork
-     * @param ORM\Persister<PostgresLink, Identity, ?UuidInterface> $persister
+     * @param ORM\Session<PostgresLink, PostgresTransaction> $session
+     * @param ORM\Persister<PostgresLink, PostgresTransaction, Identity, ?UuidInterface> $persister
      */
     public function __construct(
-        ORM\UnitOfWork $unitOfWork,
+        ORM\Session $session,
         ORM\Persister $persister = new Persister(),
     ) {
-        $this->repository = $unitOfWork->repository(
+        $this->repository = $session->repository(
             class: Identity::class,
             persister: $persister,
             getId: static fn(Identity $identity) => $identity->id->toString(),

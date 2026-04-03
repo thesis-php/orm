@@ -6,6 +6,7 @@ namespace Thesis\ORM;
 
 /**
  * @api
+ *
  * @template TEntity of object
  */
 final readonly class Changes

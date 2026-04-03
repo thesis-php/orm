@@ -10,6 +10,7 @@ use Thesis\ORM\Exception\DuplicateEntity;
 /**
  * @api
  *
+ * @template-contravariant TConnection of object
  * @template-contravariant TTransaction of object
  * @template TEntity of object
  * @template-contravariant TCriteria
@@ -17,17 +18,17 @@ use Thesis\ORM\Exception\DuplicateEntity;
 interface Persister
 {
     /**
-     * @param TTransaction $transaction
+     * @param Session<TConnection, TTransaction> $session
      * @param TCriteria $criteria
      * @return iterable<TEntity>
      */
-    public function select(object $transaction, mixed $criteria): iterable;
+    public function findBy(Session $session, mixed $criteria): iterable;
 
     /**
-     * @param TTransaction $transaction
+     * @param Session<TConnection, TTransaction> $session
      * @param Changes<TEntity> $changes
      * @throws DuplicateEntity
      * @throws ConcurrentModification
      */
-    public function persist(object $transaction, Changes $changes): void;
+    public function persist(Session $session, Changes $changes): void;
 }

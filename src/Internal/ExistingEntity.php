@@ -13,8 +13,9 @@ use Thesis\ORM\Update;
  * @internal
  *
  * @template TEntity of object
+ * @implements ManagedEntity<TEntity>
  */
-final class Existing
+final class ExistingEntity implements ManagedEntity
 {
     private bool $remove = false;
 
@@ -32,10 +33,6 @@ final class Existing
         $this->snapshot = clone $entity;
     }
 
-    /**
-     * @param TEntity $entity
-     * @throws DuplicateEntity
-     */
     public function add(object $entity): void
     {
         if ($entity !== $this->entity) {
@@ -45,10 +42,6 @@ final class Existing
         $this->remove = false;
     }
 
-    /**
-     * @param TEntity $entity
-     * @throws EntityNotManaged
-     */
     public function remove(object $entity): void
     {
         if ($entity !== $this->entity) {
@@ -58,9 +51,6 @@ final class Existing
         $this->remove = true;
     }
 
-    /**
-     * @return Changes<TEntity>
-     */
     public function collectChanges(): Changes
     {
         if ($this->remove) {

@@ -6,13 +6,14 @@ namespace Thesis\ORM\Persister;
 
 use Thesis\ORM\Changes;
 use Thesis\ORM\Persister;
+use Thesis\ORM\Session;
 
 /**
  * @api
  *
  * @template TEntity of object
  * @template-contravariant TCriteria
- * @implements Persister<object, TEntity, TCriteria>
+ * @implements Persister<object, object, TEntity, TCriteria>
  */
 final class InMemory implements Persister
 {
@@ -59,7 +60,7 @@ final class InMemory implements Persister
         }
     }
 
-    public function select(object $transaction, mixed $criteria): iterable
+    public function findBy(Session $session, mixed $criteria): iterable
     {
         $entities = $this->entities;
 
@@ -77,7 +78,7 @@ final class InMemory implements Persister
         return array_values($entities);
     }
 
-    public function persist(object $transaction, Changes $changes): void
+    public function persist(Session $session, Changes $changes): void
     {
         foreach ($changes->inserts as $insert) {
             $this->storage->offsetSet($insert);

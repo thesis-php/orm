@@ -13,57 +13,27 @@ use Thesis\ORM\Exception\EntityNotManaged;
  *
  * @template TEntity of object
  */
-final class ManagedEntity
+interface ManagedEntity
 {
     /**
-     * @param Existing<TEntity>|NonExisting<TEntity> $state
+     * @var ?TEntity
      */
-    public function __construct(
-        private Existing|NonExisting $state,
-    ) {}
-
-    /**
-     * @param TEntity $entity
-     * @return TEntity
-     */
-    public function resolveFound(object $entity): object
-    {
-        if ($this->state instanceof Existing) {
-            return $this->state->entity;
-        }
-
-        if ($this->state->entity !== null) {
-            $entity = $this->state->entity;
-            $this->state = new Existing($entity);
-
-            return $entity;
-        }
-
-        $this->state = new Existing($entity);
-
-        return $entity;
-    }
+    public ?object $entity { get; }
 
     /**
      * @param TEntity $entity
      * @throws DuplicateEntity
      */
-    public function add(object $entity): void
-    {
-        $this->state->add($entity);
-    }
+    public function add(object $entity): void;
 
     /**
      * @param TEntity $entity
      * @throws EntityNotManaged
      */
-    public function remove(object $entity): void
-    {
-        $this->state->remove($entity);
-    }
+    public function remove(object $entity): void;
 
     /**
-     * @var Changes<TEntity>
+     * @return Changes<TEntity>
      */
-    public Changes $changes { get => $this->state->collectChanges(); }
+    public function collectChanges(): Changes;
 }

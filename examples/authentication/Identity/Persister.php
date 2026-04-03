@@ -6,6 +6,8 @@ namespace Authentication\Identity;
 
 use Amp\Postgres\PostgresLink;
 use Amp\Postgres\PostgresQueryError;
+use Amp\Postgres\PostgresStatement;
+use Amp\Postgres\PostgresTransaction;
 use Authentication\Identity;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -13,21 +15,21 @@ use Thesis\ORM;
 use Thesis\ORM\Exception;
 
 /**
- * @implements ORM\Persister<PostgresLink, Identity, ?UuidInterface>
+ * @implements ORM\Persister<PostgresLink, PostgresTransaction, Identity, ?UuidInterface>
  */
 final readonly class Persister implements ORM\Persister
 {
-    public function select(object $transaction, mixed $criteria): iterable
+    public function findBy(ORM\Session $session, mixed $criteria): iterable
     {
         $rows = $criteria === null
-            ? $transaction->query(
+            ? $session->connection->query(
                 <<<'SQL'
                     select id, password_hash, version
                     from identity
                     order by id
                     SQL,
             )
-            : $transaction->execute(
+            : $session->connection->execute(
                 <<<'SQL'
                     select id, password_hash, version
                     from identity
@@ -46,23 +48,24 @@ final readonly class Persister implements ORM\Persister
         }
     }
 
-    public function persist(object $transaction, ORM\Changes $changes): void
+    public function persist(ORM\Session $session, ORM\Changes $changes): void
     {
-        $this->insert($transaction, $changes->inserts);
-        $this->update($transaction, $changes->updates);
-        $this->delete($transaction, $changes->deletes);
+        $this->insert($session, $changes->inserts);
+        $this->update($session, $changes->updates);
+        $this->delete($session, $changes->deletes);
     }
 
     /**
+     * @param ORM\Session<PostgresLink, PostgresTransaction> $session
      * @param list<Identity> $entities
      */
-    private function insert(PostgresLink $transaction, array $entities): void
+    private function insert(ORM\Session $session, array $entities): void
     {
         if ($entities === []) {
             return;
         }
 
-        $statement = $transaction->prepare(
+        $statement = $session->lazyTransaction->prepare(
             <<<'SQL'
                 insert into identity (id, password_hash)
                 values (?, ?)
@@ -83,27 +86,29 @@ final readonly class Persister implements ORM\Persister
     }
 
     /**
+     * @param ORM\Session<PostgresLink, PostgresTransaction> $session
      * @param list<ORM\Update<Identity>> $updates
      */
-    private function update(PostgresLink $transaction, array $updates): void
+    private function update(ORM\Session $session, array $updates): void
     {
-        if ($updates === []) {
-            return;
-        }
-
-        $statement = $transaction->prepare(
-            <<<'SQL'
-                update identity
-                set password_hash = ?,
-                    version = version + 1
-                where id = ? and version = ?
-                SQL,
-        );
+        /**
+         * @var ?PostgresStatement $statement prepare lazily to avoid beginning an unnecessary transaction
+         */
+        $statement = null;
 
         foreach ($updates as $update) {
             if ($update->entity->passwordHash === $update->snapshot->passwordHash) {
                 continue;
             }
+
+            $statement ??= $session->lazyTransaction->prepare(
+                <<<'SQL'
+                    update identity
+                    set password_hash = ?,
+                        version = version + 1
+                    where id = ? and version = ?
+                    SQL,
+            );
 
             $result = $statement->execute([
                 $update->entity->passwordHash,
@@ -118,15 +123,16 @@ final readonly class Persister implements ORM\Persister
     }
 
     /**
+     * @param ORM\Session<PostgresLink, PostgresTransaction> $session
      * @param list<Identity> $entities
      */
-    private function delete(PostgresLink $transaction, array $entities): void
+    private function delete(ORM\Session $session, array $entities): void
     {
         if ($entities === []) {
             return;
         }
 
-        $statement = $transaction->prepare(
+        $statement = $session->lazyTransaction->prepare(
             <<<'SQL'
                 delete from identity
                 where id = ? and version = ?
