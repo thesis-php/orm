@@ -130,7 +130,7 @@ final class Repository
         }
     }
 
-    private bool $isClosed = false;
+    public private(set) bool $isClosed = false;
 
     private function ensureNotClosed(): void
     {
