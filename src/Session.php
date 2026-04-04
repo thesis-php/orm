@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Thesis\ORM;
 
 use Thesis\ORM\Exception\UnitOfWorkClosed;
+use Thesis\Sync\Once;
 
 /**
  * @api
@@ -23,9 +24,9 @@ final class Session
     }
 
     /**
-     * @var ?Transaction<TTransaction>
+     * @var ?Once<Transaction<TTransaction>>
      */
-    private ?Transaction $transactionHandle = null;
+    private ?Once $transactionHandle = null;
 
     /**
      * @var TTransaction
@@ -35,9 +36,20 @@ final class Session
         get {
             $this->ensureNotClosed();
 
-            $this->transactionHandle ??= $this->connectionHandle->beginTransaction($this->isolationLevel);
+            if ($this->transactionHandle === null) {
+                $connection = $this->connectionHandle;
+                $level = $this->isolationLevel;
+                $this->transactionHandle = new Once(static fn() => $connection->beginTransaction($level));
+            }
 
-            return $this->transactionHandle->inner;
+            try {
+                return $this->transactionHandle->await()->inner;
+            } catch (\Throwable $exception) {
+                // the session cannot be used if beginTransaction() failed
+                $this->close();
+
+                throw $exception;
+            }
         }
     }
 
@@ -81,9 +93,9 @@ final class Session
                 $repository->persist();
             }
 
-            $this->transactionHandle?->commit();
+            $this->transactionHandle?->await()->commit();
         } catch (\Throwable $exception) {
-            $this->transactionHandle?->rollback();
+            $this->transactionHandle?->await()->rollback();
 
             throw $exception;
         } finally {
@@ -96,7 +108,7 @@ final class Session
         $this->ensureNotClosed();
 
         try {
-            $this->transactionHandle?->rollback();
+            $this->transactionHandle?->await()->rollback();
         } finally {
             $this->close();
         }

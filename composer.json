@@ -20,7 +20,8 @@
     "require": {
         "php": "^8.4",
         "amphp/postgres": "^2.2",
-        "amphp/sql": "^2.1"
+        "amphp/sql": "^2.1",
+        "thesis/sync-once": "^0.1.3"
     },
     "require-dev": {
         "amphp/amp": "^3.1",
