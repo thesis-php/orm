@@ -24,7 +24,8 @@ final readonly class Repository
         ORM\Session $session,
         ORM\Persister $persister = new Persister(),
     ) {
-        $this->repository = $session->createRepository(
+        $this->repository = $session->repository(
+            class: Identity::class,
             persister: $persister,
             getId: static fn(Identity $identity) => $identity->id->toString(),
             calculateChangeSet: static function (Identity $entity, Identity $snapshot): ?Identity {

@@ -76,8 +76,6 @@ final class Session
     }
 
     /**
-     * @internal
-     *
      * @param ConnectionHandle<TExecutor> $connectionHandle
      */
     private function __construct(
@@ -86,34 +84,31 @@ final class Session
     ) {}
 
     /**
-     * @var list<\Closure(): void>
+     * @var array<class-string, Repository<TExecutor, *, *, *>>
      */
-    private array $persists = [];
+    private array $repositories = [];
 
     /**
      * @template TEntity of object
      * @template TCriteria
      * @template TChangeSet of array<mixed>|object
+     * @param class-string<TEntity> $class
      * @param Persister<TExecutor, TEntity, TCriteria, TChangeSet> $persister
      * @param callable(TEntity): ?non-empty-string $getId
      * @param callable(TEntity $entity, TEntity $snapshot): ?TChangeSet $calculateChangeSet
      * @return Repository<TExecutor, TEntity, TCriteria, TChangeSet>
      */
-    public function createRepository(Persister $persister, callable $getId, callable $calculateChangeSet): Repository
+    public function repository(string $class, Persister $persister, callable $getId, callable $calculateChangeSet): Repository
     {
         $this->ensureNotClosed();
 
-        $repository = new Repository(
+        /** @var Repository<TExecutor, TEntity, TCriteria, TChangeSet> */
+        return $this->repositories[$class] ??= new Repository(
             session: $this,
             persister: $persister,
             getId: $getId(...),
             calculateChangeSet: $calculateChangeSet(...),
-            persist: $persist,
         );
-
-        $this->persists[] = $persist;
-
-        return $repository;
     }
 
     public function commit(): void
@@ -121,8 +116,8 @@ final class Session
         $this->ensureNotClosed();
 
         try {
-            foreach ($this->persists as $persist) {
-                $persist();
+            foreach ($this->repositories as $repository) {
+                $repository->persist();
             }
 
             $this->transactionHandle?->await()->commit();
@@ -158,7 +153,7 @@ final class Session
     private function close(): void
     {
         $this->transactionHandle = null;
-        $this->persists = [];
+        $this->repositories = [];
         $this->isClosed = true;
     }
 }

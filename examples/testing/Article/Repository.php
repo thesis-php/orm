@@ -24,7 +24,8 @@ final readonly class Repository
         ORM\Session $session,
         ORM\Persister $persister,
     ) {
-        $this->repository = $session->createRepository(
+        $this->repository = $session->repository(
+            class: Article::class,
             persister: $persister,
             getId: static fn(Article $article) => $article->id->toString(),
             calculateChangeSet: static fn() => null,

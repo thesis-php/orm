@@ -34,17 +34,13 @@ final class Repository
      * @param Persister<TExecutor, TEntity, TCriteria, TChangeSet> $persister
      * @param \Closure(TEntity): ?non-empty-string $getId
      * @param \Closure(TEntity, TEntity): ?TChangeSet $calculateChangeSet
-     * @param-out \Closure(): void $persist
      */
     public function __construct(
         private readonly Session $session,
         private readonly Persister $persister,
         private readonly \Closure $getId,
         private readonly \Closure $calculateChangeSet,
-        mixed &$persist,
-    ) {
-        $persist = $this->persist(...);
-    }
+    ) {}
 
     /**
      * @param TCriteria $criteria
@@ -139,7 +135,10 @@ final class Repository
         return new NonExistingEntity();
     }
 
-    private function persist(): void
+    /**
+     * @internal
+     */
+    public function persist(): void
     {
         $this->ensureNotClosed();
 
