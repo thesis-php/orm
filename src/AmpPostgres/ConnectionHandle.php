@@ -5,26 +5,26 @@ declare(strict_types=1);
 namespace Thesis\ORM\AmpPostgres;
 
 use Amp\Postgres\PostgresConnection;
-use Amp\Postgres\PostgresTransaction;
+use Amp\Postgres\PostgresLink;
 use Amp\Sql\SqlTransactionIsolationLevel;
 use Thesis\ORM;
 
 /**
  * @api
  *
- * @implements ORM\Connection<PostgresConnection, PostgresTransaction>
+ * @implements ORM\ConnectionHandle<PostgresLink>
  */
-final readonly class Connection implements ORM\Connection
+final readonly class ConnectionHandle implements ORM\ConnectionHandle
 {
     public function __construct(
-        public PostgresConnection $inner,
+        public PostgresConnection $executor,
     ) {}
 
-    public function beginTransaction(ORM\IsolationLevel $isolationLevel = ORM\IsolationLevel::ReadCommitted): ORM\Transaction
+    public function beginTransaction(ORM\IsolationLevel $isolationLevel = ORM\IsolationLevel::ReadCommitted): ORM\TransactionHandle
     {
-        $previousIsolationLevel = $this->inner->getTransactionIsolation();
+        $previousIsolationLevel = $this->executor->getTransactionIsolation();
 
-        $this->inner->setTransactionIsolation(
+        $this->executor->setTransactionIsolation(
             match ($isolationLevel) {
                 ORM\IsolationLevel::ReadCommitted => SqlTransactionIsolationLevel::Committed,
                 ORM\IsolationLevel::RepeatableRead => SqlTransactionIsolationLevel::Repeatable,
@@ -33,12 +33,12 @@ final readonly class Connection implements ORM\Connection
             },
         );
 
-        $transaction = $this->inner->beginTransaction();
+        $transaction = $this->executor->beginTransaction();
 
         $transaction->onClose(function () use ($previousIsolationLevel): void {
-            $this->inner->setTransactionIsolation($previousIsolationLevel);
+            $this->executor->setTransactionIsolation($previousIsolationLevel);
         });
 
-        return new Transaction($transaction);
+        return new TransactionHandle($transaction);
     }
 }

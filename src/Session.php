@@ -4,35 +4,57 @@ declare(strict_types=1);
 
 namespace Thesis\ORM;
 
-use Thesis\ORM\Exception\UnitOfWorkClosed;
+use Thesis\ORM\Exception\SessionClosed;
 use Thesis\Sync\Once;
 
 /**
  * @api
  *
- * @template-covariant TConnection of object
- * @template-covariant TTransaction of object
+ * @template-covariant TExecutor of object
  */
 final class Session
 {
     /**
-     * @var TConnection
-     * @phpstan-ignore generics.variance
+     * @template T
+     * @template TInExecutor of object
+     * @param ConnectionHandle<TInExecutor> $connectionHandle
+     * @param callable(self<TInExecutor>): T $function
+     * @return T
      */
-    public object $connection {
-        get => $this->connectionHandle->inner;
+    public static function in(
+        ConnectionHandle $connectionHandle,
+        IsolationLevel $isolationLevel,
+        callable $function,
+    ): mixed {
+        $session = new self($connectionHandle, $isolationLevel);
+
+        $result = $function($session);
+
+        if (!$session->isClosed) {
+            $session->commit();
+        }
+
+        return $result;
     }
 
     /**
-     * @var ?Once<Transaction<TTransaction>>
+     * @var TExecutor
+     * @phpstan-ignore generics.variance
+     */
+    public object $connection {
+        get => $this->connectionHandle->executor;
+    }
+
+    /**
+     * @var ?Once<TransactionHandle<TExecutor>>
      */
     private ?Once $transactionHandle = null;
 
     /**
-     * @var TTransaction
+     * @var TExecutor
      * @phpstan-ignore generics.variance
      */
-    public object $lazyTransaction {
+    public object $transaction {
         get {
             $this->ensureNotClosed();
 
@@ -43,7 +65,7 @@ final class Session
             }
 
             try {
-                return $this->transactionHandle->await()->inner;
+                return $this->transactionHandle->await()->executor;
             } catch (\Throwable $exception) {
                 // the session cannot be used if beginTransaction() failed
                 $this->close();
@@ -54,33 +76,33 @@ final class Session
     }
 
     /**
-     * @var array<class-string, Repository<TConnection, TTransaction, *, *>>
-     */
-    private array $repositories = [];
-
-    /**
      * @internal
      *
-     * @param Connection<TConnection, TTransaction> $connectionHandle
+     * @param ConnectionHandle<TExecutor> $connectionHandle
      */
-    public function __construct(
-        private readonly Connection $connectionHandle,
+    private function __construct(
+        private readonly ConnectionHandle $connectionHandle,
         private readonly IsolationLevel $isolationLevel = IsolationLevel::ReadCommitted,
     ) {}
+
+    /**
+     * @var array<class-string, Repository<TExecutor, *, *>>
+     */
+    private array $repositories = [];
 
     /**
      * @template TEntity of object
      * @template TCriteria
      * @param class-string<TEntity> $class
-     * @param Persister<TConnection, TTransaction, TEntity, TCriteria> $persister
+     * @param Persister<TExecutor, TEntity, TCriteria> $persister
      * @param \Closure(TEntity): ?non-empty-string $getId
-     * @return Repository<TConnection, TTransaction, TEntity, TCriteria>
+     * @return Repository<TExecutor, TEntity, TCriteria>
      */
     public function repository(string $class, Persister $persister, \Closure $getId): Repository
     {
         $this->ensureNotClosed();
 
-        /** @var Repository<TConnection, TTransaction, TEntity, TCriteria> */
+        /** @var Repository<TExecutor, TEntity, TCriteria> */
         return $this->repositories[$class] ??= new Repository($this, $persister, $getId);
     }
 
@@ -114,19 +136,19 @@ final class Session
         }
     }
 
-    public private(set) bool $isClosed = false;
+    private bool $isClosed = false;
 
     private function ensureNotClosed(): void
     {
         if ($this->isClosed) {
-            throw new UnitOfWorkClosed();
+            throw new SessionClosed();
         }
     }
 
     private function close(): void
     {
-        $this->repositories = [];
         $this->transactionHandle = null;
+        $this->repositories = [];
         $this->isClosed = true;
     }
 }

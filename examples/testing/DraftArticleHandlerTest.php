@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use Testing\Article\Repository;
-use Thesis\ORM\AmpPostgres\Connection;
+use Thesis\ORM\AmpPostgres\ConnectionHandle;
 use Thesis\ORM\EntityManager;
 use Thesis\ORM\Persister\InMemory;
 use Thesis\ORM\Session;
@@ -20,7 +20,7 @@ final class DraftArticleHandlerTest extends TestCase
 {
     public function testItAddsAnArticle(): void
     {
-        $entityManager = new EntityManager(new Connection($this->createMock(PostgresConnection::class)));
+        $entityManager = new EntityManager(new ConnectionHandle($this->createMock(PostgresConnection::class)));
         $persister = new InMemory(static fn(Article $article, UuidInterface $id) => $article->id->equals($id));
         $repository = $entityManager->session(static fn(Session $session) => new Repository($session, $persister));
         $handler = new DraftArticleHandler($repository);
@@ -35,7 +35,7 @@ final class DraftArticleHandlerTest extends TestCase
 
     public function testItPersistsAnArticle(): void
     {
-        $entityManager = new EntityManager(new Connection($this->createMock(PostgresConnection::class)));
+        $entityManager = new EntityManager(new ConnectionHandle($this->createMock(PostgresConnection::class)));
         $persister = new InMemory(static fn(Article $article) => true);
         $id = Uuid::uuid7();
         $title = 'PHP is awesome!';

@@ -8,7 +8,7 @@ use Amp\Postgres\PostgresConfig;
 use Amp\Postgres\PostgresConnectionPool;
 use Authentication\Identity\Repository;
 use Ramsey\Uuid\Uuid;
-use Thesis\ORM\AmpPostgres\Connection;
+use Thesis\ORM\AmpPostgres\ConnectionHandle;
 use Thesis\ORM\EntityManager;
 use Thesis\ORM\Session;
 use function Amp\async;
@@ -16,7 +16,7 @@ use function Amp\async;
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 $entityManager = new EntityManager(
-    new Connection(
+    new ConnectionHandle(
         new PostgresConnectionPool(
             new PostgresConfig(
                 host: 'localhost',

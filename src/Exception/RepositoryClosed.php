@@ -7,4 +7,4 @@ namespace Thesis\ORM\Exception;
 /**
  * @api
  */
-final class UnitOfWorkClosed extends \LogicException {}
+final class RepositoryClosed extends \LogicException {}

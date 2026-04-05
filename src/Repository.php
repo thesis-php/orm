@@ -6,7 +6,7 @@ namespace Thesis\ORM;
 
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
-use Thesis\ORM\Exception\UnitOfWorkClosed;
+use Thesis\ORM\Exception\RepositoryClosed;
 use Thesis\ORM\Internal\ExistingEntity;
 use Thesis\ORM\Internal\ManagedEntity;
 use Thesis\ORM\Internal\NonExistingEntity;
@@ -14,8 +14,7 @@ use Thesis\ORM\Internal\NonExistingEntity;
 /**
  * @api
  *
- * @template-covariant TConnection of object
- * @template-covariant TTransaction of object
+ * @template-covariant TExecutor of object
  * @template TEntity of object
  * @template-contravariant TCriteria
  */
@@ -29,8 +28,8 @@ final class Repository
     /**
      * @internal
      *
-     * @param Session<TConnection, TTransaction> $session
-     * @param Persister<TConnection, TTransaction, TEntity, TCriteria> $persister
+     * @param Session<TExecutor> $session
+     * @param Persister<TExecutor, TEntity, TCriteria> $persister
      * @param \Closure(TEntity): ?non-empty-string $getId
      */
     public function __construct(
@@ -43,7 +42,26 @@ final class Repository
      * @param TCriteria $criteria
      * @return list<TEntity>
      */
-    public function findBy(mixed $criteria): array
+    public function find(mixed $criteria): array
+    {
+        return $this->doFind($this->session->transaction, $criteria);
+    }
+
+    /**
+     * @param TCriteria $criteria
+     * @return list<TEntity>
+     */
+    public function findOutsideTransaction(mixed $criteria): array
+    {
+        return $this->doFind($this->session->connection, $criteria);
+    }
+
+    /**
+     * @param TExecutor $executor
+     * @param TCriteria $criteria
+     * @return list<TEntity>
+     */
+    private function doFind(object $executor, mixed $criteria): array
     {
         $this->ensureNotClosed();
 
@@ -67,7 +85,7 @@ final class Repository
                 return $entity;
             },
             iterator_to_array(
-                $this->persister->findBy($this->session, $criteria),
+                $this->persister->find($executor, $criteria),
                 preserve_keys: false,
             ),
         );
@@ -121,7 +139,7 @@ final class Repository
         $this->ensureNotClosed();
 
         try {
-            $this->persister->persist($this->session, Changes::merge(array_map(
+            $this->persister->persist($this->session->transaction, Changes::merge(array_map(
                 static fn(ManagedEntity $entity) => $entity->collectChanges(),
                 array_values($this->entities),
             )));
@@ -130,12 +148,12 @@ final class Repository
         }
     }
 
-    public private(set) bool $isClosed = false;
+    private bool $isClosed = false;
 
     private function ensureNotClosed(): void
     {
         if ($this->isClosed) {
-            throw new UnitOfWorkClosed();
+            throw new RepositoryClosed();
         }
     }
 

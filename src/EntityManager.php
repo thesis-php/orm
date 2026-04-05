@@ -7,33 +7,24 @@ namespace Thesis\ORM;
 /**
  * @api
  *
- * @template TConnection of object
- * @template TTransaction of object
+ * @template TExecutor of object
  */
 final readonly class EntityManager
 {
     /**
-     * @param Connection<TConnection, TTransaction> $connection
+     * @param ConnectionHandle<TExecutor> $connectionHandle
      */
     public function __construct(
-        private Connection $connection,
+        private ConnectionHandle $connectionHandle,
     ) {}
 
     /**
      * @template T
-     * @param callable(Session<TConnection, TTransaction>): T $function
+     * @param callable(Session<TExecutor>): T $function
      * @return T
      */
     public function session(callable $function, IsolationLevel $isolationLevel = IsolationLevel::ReadCommitted): mixed
     {
-        $session = new Session($this->connection, $isolationLevel);
-
-        $result = $function($session);
-
-        if (!$session->isClosed) {
-            $session->commit();
-        }
-
-        return $result;
+        return Session::in($this->connectionHandle, $isolationLevel, $function);
     }
 }

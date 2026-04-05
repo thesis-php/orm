@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Testing\Article;
 
 use Amp\Postgres\PostgresLink;
-use Amp\Postgres\PostgresTransaction;
 use Ramsey\Uuid\UuidInterface;
 use Testing\Article;
 use Thesis\ORM;
@@ -13,13 +12,13 @@ use Thesis\ORM;
 final readonly class Repository
 {
     /**
-     * @var ORM\Repository<PostgresLink, PostgresTransaction, Article, UuidInterface>
+     * @var ORM\Repository<PostgresLink, Article, UuidInterface>
      */
     private ORM\Repository $repository;
 
     /**
-     * @param ORM\Session<PostgresLink, PostgresTransaction> $session
-     * @param ORM\Persister<PostgresLink, PostgresTransaction, Article, UuidInterface> $persister
+     * @param ORM\Session<PostgresLink> $session
+     * @param ORM\Persister<PostgresLink, Article, UuidInterface> $persister
      */
     public function __construct(
         ORM\Session $session,
@@ -34,7 +33,7 @@ final readonly class Repository
 
     public function find(UuidInterface $id): ?Article
     {
-        return $this->repository->findBy($id)[0] ?? null;
+        return $this->repository->find($id)[0] ?? null;
     }
 
     public function add(Article $article): void

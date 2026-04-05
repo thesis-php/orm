@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Authentication\Identity;
 
 use Amp\Postgres\PostgresLink;
-use Amp\Postgres\PostgresTransaction;
 use Authentication\Identity;
 use Ramsey\Uuid\UuidInterface;
 use Thesis\ORM;
@@ -13,13 +12,13 @@ use Thesis\ORM;
 final readonly class Repository
 {
     /**
-     * @var ORM\Repository<PostgresLink, PostgresTransaction, Identity, ?UuidInterface>
+     * @var ORM\Repository<PostgresLink, Identity, ?UuidInterface>
      */
     private ORM\Repository $repository;
 
     /**
-     * @param ORM\Session<PostgresLink, PostgresTransaction> $session
-     * @param ORM\Persister<PostgresLink, PostgresTransaction, Identity, ?UuidInterface> $persister
+     * @param ORM\Session<PostgresLink> $session
+     * @param ORM\Persister<PostgresLink, Identity, ?UuidInterface> $persister
      */
     public function __construct(
         ORM\Session $session,
@@ -34,7 +33,7 @@ final readonly class Repository
 
     public function find(UuidInterface $id): ?Identity
     {
-        return $this->repository->findBy($id)[0] ?? null;
+        return $this->repository->find($id)[0] ?? null;
     }
 
     /**
@@ -42,7 +41,7 @@ final readonly class Repository
      */
     public function findAll(): array
     {
-        return $this->repository->findBy(null);
+        return $this->repository->find(null);
     }
 
     public function add(Identity $identity): void
