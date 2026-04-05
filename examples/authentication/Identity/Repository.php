@@ -12,22 +12,28 @@ use Thesis\ORM;
 final readonly class Repository
 {
     /**
-     * @var ORM\Repository<PostgresLink, Identity, ?UuidInterface>
+     * @var ORM\Repository<PostgresLink, Identity, ?UuidInterface, Identity>
      */
     private ORM\Repository $repository;
 
     /**
      * @param ORM\Session<PostgresLink> $session
-     * @param ORM\Persister<PostgresLink, Identity, ?UuidInterface> $persister
+     * @param ORM\Persister<PostgresLink, Identity, ?UuidInterface, Identity> $persister
      */
     public function __construct(
         ORM\Session $session,
         ORM\Persister $persister = new Persister(),
     ) {
-        $this->repository = $session->repository(
-            class: Identity::class,
+        $this->repository = $session->createRepository(
             persister: $persister,
             getId: static fn(Identity $identity) => $identity->id->toString(),
+            calculateChangeSet: static function (Identity $entity, Identity $snapshot): ?Identity {
+                if ($entity->passwordHash === $snapshot->passwordHash) {
+                    return null;
+                }
+
+                return $entity;
+            },
         );
     }
 

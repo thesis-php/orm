@@ -7,6 +7,7 @@ namespace Thesis\ORM;
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
 use Thesis\ORM\Exception\RepositoryClosed;
+use Thesis\ORM\Internal\Changes;
 use Thesis\ORM\Internal\ExistingEntity;
 use Thesis\ORM\Internal\ManagedEntity;
 use Thesis\ORM\Internal\NonExistingEntity;
@@ -17,6 +18,7 @@ use Thesis\ORM\Internal\NonExistingEntity;
  * @template-covariant TExecutor of object
  * @template TEntity of object
  * @template-contravariant TCriteria
+ * @template-contravariant TChangeSet of array|object
  */
 final class Repository
 {
@@ -29,14 +31,20 @@ final class Repository
      * @internal
      *
      * @param Session<TExecutor> $session
-     * @param Persister<TExecutor, TEntity, TCriteria> $persister
+     * @param Persister<TExecutor, TEntity, TCriteria, TChangeSet> $persister
      * @param \Closure(TEntity): ?non-empty-string $getId
+     * @param \Closure(TEntity, TEntity): ?TChangeSet $calculateChangeSet
+     * @param-out \Closure(): void $persist
      */
     public function __construct(
         private readonly Session $session,
         private readonly Persister $persister,
         private readonly \Closure $getId,
-    ) {}
+        private readonly \Closure $calculateChangeSet,
+        mixed &$persist,
+    ) {
+        $persist = $this->persist(...);
+    }
 
     /**
      * @param TCriteria $criteria
@@ -131,18 +139,18 @@ final class Repository
         return new NonExistingEntity();
     }
 
-    /**
-     * @internal
-     */
-    public function persist(): void
+    private function persist(): void
     {
         $this->ensureNotClosed();
 
         try {
-            $this->persister->persist($this->session->transaction, Changes::merge(array_map(
-                static fn(ManagedEntity $entity) => $entity->collectChanges(),
-                array_values($this->entities),
-            )));
+            $changes = new Changes($this->calculateChangeSet);
+
+            foreach ($this->entities as $entity) {
+                $entity->collectChanges($changes);
+            }
+
+            $changes->persist($this->session, $this->persister);
         } finally {
             $this->close();
         }

@@ -86,24 +86,34 @@ final class Session
     ) {}
 
     /**
-     * @var array<class-string, Repository<TExecutor, *, *>>
+     * @var list<\Closure(): void>
      */
-    private array $repositories = [];
+    private array $persists = [];
 
     /**
      * @template TEntity of object
      * @template TCriteria
-     * @param class-string<TEntity> $class
-     * @param Persister<TExecutor, TEntity, TCriteria> $persister
-     * @param \Closure(TEntity): ?non-empty-string $getId
-     * @return Repository<TExecutor, TEntity, TCriteria>
+     * @template TChangeSet of array<mixed>|object
+     * @param Persister<TExecutor, TEntity, TCriteria, TChangeSet> $persister
+     * @param callable(TEntity): ?non-empty-string $getId
+     * @param callable(TEntity $entity, TEntity $snapshot): ?TChangeSet $calculateChangeSet
+     * @return Repository<TExecutor, TEntity, TCriteria, TChangeSet>
      */
-    public function repository(string $class, Persister $persister, \Closure $getId): Repository
+    public function createRepository(Persister $persister, callable $getId, callable $calculateChangeSet): Repository
     {
         $this->ensureNotClosed();
 
-        /** @var Repository<TExecutor, TEntity, TCriteria> */
-        return $this->repositories[$class] ??= new Repository($this, $persister, $getId);
+        $repository = new Repository(
+            session: $this,
+            persister: $persister,
+            getId: $getId(...),
+            calculateChangeSet: $calculateChangeSet(...),
+            persist: $persist,
+        );
+
+        $this->persists[] = $persist;
+
+        return $repository;
     }
 
     public function commit(): void
@@ -111,8 +121,8 @@ final class Session
         $this->ensureNotClosed();
 
         try {
-            foreach ($this->repositories as $repository) {
-                $repository->persist();
+            foreach ($this->persists as $persist) {
+                $persist();
             }
 
             $this->transactionHandle?->await()->commit();
@@ -148,7 +158,7 @@ final class Session
     private function close(): void
     {
         $this->transactionHandle = null;
-        $this->repositories = [];
+        $this->persists = [];
         $this->isClosed = true;
     }
 }

@@ -12,22 +12,22 @@ use Thesis\ORM;
 final readonly class Repository
 {
     /**
-     * @var ORM\Repository<PostgresLink, Article, UuidInterface>
+     * @var ORM\Repository<PostgresLink, Article, UuidInterface, Article>
      */
     private ORM\Repository $repository;
 
     /**
      * @param ORM\Session<PostgresLink> $session
-     * @param ORM\Persister<PostgresLink, Article, UuidInterface> $persister
+     * @param ORM\Persister<PostgresLink, Article, UuidInterface, Article> $persister
      */
     public function __construct(
         ORM\Session $session,
         ORM\Persister $persister,
     ) {
-        $this->repository = $session->repository(
-            class: Article::class,
+        $this->repository = $session->createRepository(
             persister: $persister,
             getId: static fn(Article $article) => $article->id->toString(),
+            calculateChangeSet: static fn() => null,
         );
     }
 

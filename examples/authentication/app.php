@@ -15,18 +15,26 @@ use function Amp\async;
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 
-$entityManager = new EntityManager(
-    new ConnectionHandle(
-        new PostgresConnectionPool(
-            new PostgresConfig(
-                host: 'localhost',
-                user: 'postgres',
-                password: 'postgres',
-                database: 'postgres',
-            ),
-        )->extractConnection(),
+$postgres = new PostgresConnectionPool(
+    new PostgresConfig(
+        host: 'localhost',
+        user: 'postgres',
+        password: 'postgres',
+        database: 'postgres',
     ),
 );
+
+$postgres->query(
+    <<<'SQL'
+        create table if not exists identity (
+            id uuid primary key,
+            password_hash text not null,
+            version smallint default 1 not null
+        )
+        SQL,
+);
+
+$entityManager = new EntityManager(new ConnectionHandle($postgres));
 
 async(static function () use ($entityManager): void {
     $id = Uuid::uuid7();

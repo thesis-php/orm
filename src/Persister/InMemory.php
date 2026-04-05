@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Persister;
 
-use Thesis\ORM\Changes;
 use Thesis\ORM\Persister;
 
 /**
@@ -12,7 +11,7 @@ use Thesis\ORM\Persister;
  *
  * @template TEntity of object
  * @template-contravariant TCriteria
- * @implements Persister<object, TEntity, TCriteria>
+ * @implements Persister<object, TEntity, TCriteria, array<mixed>|object>
  */
 final class InMemory implements Persister
 {
@@ -77,14 +76,19 @@ final class InMemory implements Persister
         return array_values($entities);
     }
 
-    public function persist(object $executor, Changes $changes): void
+    public function insert(object $executor, array $entities): void
     {
-        foreach ($changes->inserts as $insert) {
-            $this->storage->offsetSet($insert);
+        foreach ($entities as $entity) {
+            $this->storage->offsetSet($entity);
         }
+    }
 
-        foreach ($changes->deletes as $delete) {
-            $this->storage->offsetUnset($delete);
+    public function update(object $executor, array $changeSets): void {}
+
+    public function delete(object $executor, array $entities): void
+    {
+        foreach ($entities as $entity) {
+            $this->storage->offsetUnset($entity);
         }
     }
 }

@@ -6,7 +6,6 @@ namespace Authentication\Identity;
 
 use Amp\Postgres\PostgresLink;
 use Amp\Postgres\PostgresQueryError;
-use Amp\Postgres\PostgresStatement;
 use Authentication\Identity;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -14,7 +13,7 @@ use Thesis\ORM;
 use Thesis\ORM\Exception;
 
 /**
- * @implements ORM\Persister<PostgresLink, Identity, ?UuidInterface>
+ * @implements ORM\Persister<PostgresLink, Identity, ?UuidInterface, Identity>
  */
 final readonly class Persister implements ORM\Persister
 {
@@ -47,22 +46,8 @@ final readonly class Persister implements ORM\Persister
         }
     }
 
-    public function persist(object $executor, ORM\Changes $changes): void
+    public function insert(object $executor, array $entities): void
     {
-        $this->insert($executor, $changes->inserts);
-        $this->update($executor, $changes->updates);
-        $this->delete($executor, $changes->deletes);
-    }
-
-    /**
-     * @param list<Identity> $entities
-     */
-    private function insert(PostgresLink $executor, array $entities): void
-    {
-        if ($entities === []) {
-            return;
-        }
-
         $statement = $executor->prepare(
             <<<'SQL'
                 insert into identity (id, password_hash)
@@ -83,34 +68,22 @@ final readonly class Persister implements ORM\Persister
         }
     }
 
-    /**
-     * @param list<ORM\Update<Identity>> $updates
-     */
-    private function update(PostgresLink $executor, array $updates): void
+    public function update(object $executor, array $changeSets): void
     {
-        /**
-         * @var ?PostgresStatement $statement prepare lazily to avoid beginning an unnecessary transaction
-         */
-        $statement = null;
+        $statement = $executor->prepare(
+            <<<'SQL'
+                update identity
+                set password_hash = ?,
+                    version = version + 1
+                where id = ? and version = ?
+                SQL,
+        );
 
-        foreach ($updates as $update) {
-            if ($update->entity->passwordHash === $update->snapshot->passwordHash) {
-                continue;
-            }
-
-            $statement ??= $executor->prepare(
-                <<<'SQL'
-                    update identity
-                    set password_hash = ?,
-                        version = version + 1
-                    where id = ? and version = ?
-                    SQL,
-            );
-
+        foreach ($changeSets as $changeSet) {
             $result = $statement->execute([
-                $update->entity->passwordHash,
-                $update->entity->id->toString(),
-                $update->entity->version,
+                $changeSet->passwordHash,
+                $changeSet->id->toString(),
+                $changeSet->version,
             ]);
 
             if ($result->getRowCount() !== 1) {
@@ -119,15 +92,8 @@ final readonly class Persister implements ORM\Persister
         }
     }
 
-    /**
-     * @param list<Identity> $entities
-     */
-    private function delete(PostgresLink $executor, array $entities): void
+    public function delete(object $executor, array $entities): void
     {
-        if ($entities === []) {
-            return;
-        }
-
         $statement = $executor->prepare(
             <<<'SQL'
                 delete from identity

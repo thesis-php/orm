@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
-use Thesis\ORM\Changes;
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
 
@@ -33,7 +32,7 @@ interface ManagedEntity
     public function remove(object $entity): void;
 
     /**
-     * @return Changes<TEntity>
+     * @param Changes<TEntity, *> $changes
      */
-    public function collectChanges(): Changes;
+    public function collectChanges(Changes $changes): void;
 }

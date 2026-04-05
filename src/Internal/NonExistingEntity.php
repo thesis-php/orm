@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
-use Thesis\ORM\Changes;
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
 
@@ -44,11 +43,10 @@ final class NonExistingEntity implements ManagedEntity
         $this->entity = null;
     }
 
-    /**
-     * @return Changes<TEntity>
-     */
-    public function collectChanges(): Changes
+    public function collectChanges(Changes $changes): void
     {
-        return new Changes(inserts: $this->entity === null ? [] : [$this->entity]);
+        if ($this->entity !== null) {
+            $changes->insert($this->entity);
+        }
     }
 }

@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Thesis\ORM\Internal;
 
-use Thesis\ORM\Changes;
 use Thesis\ORM\Exception\DuplicateEntity;
 use Thesis\ORM\Exception\EntityNotManaged;
-use Thesis\ORM\Update;
 
 /**
  * @internal
@@ -51,12 +49,12 @@ final class ExistingEntity implements ManagedEntity
         $this->remove = true;
     }
 
-    public function collectChanges(): Changes
+    public function collectChanges(Changes $changes): void
     {
         if ($this->remove) {
-            return new Changes(deletes: [$this->entity]);
+            $changes->delete($this->entity);
+        } else {
+            $changes->update($this->entity, $this->snapshot);
         }
-
-        return new Changes(updates: [new Update($this->entity, $this->snapshot)]);
     }
 }
