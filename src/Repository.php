@@ -118,7 +118,7 @@ final class Repository
     {
         $this->ensureNotClosed();
 
-        ($this->entities[$this->key($entity)] ??= $this->createNonExistingEntity())->add($entity);
+        ($this->entities[$this->key($entity)] ??= $this->createNonExistingEntity())->remove($entity);
     }
 
     /**
