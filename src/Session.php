@@ -39,7 +39,6 @@ final class Session
 
     /**
      * @var TExecutor
-     * @phpstan-ignore generics.variance
      */
     public object $connection {
         get => $this->connectionHandle->executor;
@@ -52,7 +51,6 @@ final class Session
 
     /**
      * @var TExecutor
-     * @phpstan-ignore generics.variance
      */
     public object $transaction {
         get {

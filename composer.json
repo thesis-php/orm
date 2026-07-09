@@ -21,13 +21,15 @@
         "php": "^8.4",
         "amphp/postgres": "^2.2",
         "amphp/sql": "^2.1",
-        "thesis/sync-once": "^0.2@dev"
+        "thesis/sync-once": "^0.2"
     },
     "require-dev": {
         "amphp/amp": "^3.1",
-        "phpunit/phpunit": "^12.4",
         "ramsey/uuid": "^4.9",
-        "symfony/var-dumper": "^8.0"
+        "symfony/var-dumper": "^8.0",
+        "testo/assert": "^0.1.11",
+        "testo/test": "^0.1.6",
+        "testo/testo": "^0.10.29"
     },
     "autoload": {
         "psr-4": {

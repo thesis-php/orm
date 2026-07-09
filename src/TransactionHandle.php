@@ -13,7 +13,6 @@ interface TransactionHandle
 {
     /**
      * @var TExecutor
-     * @phpstan-ignore generics.variance
      */
     public object $executor { get; }
 

@@ -13,7 +13,6 @@ interface ConnectionHandle
 {
     /**
      * @var TExecutor
-     * @phpstan-ignore generics.variance
      */
     public object $executor { get; }
 
